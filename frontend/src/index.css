@@ -1,0 +1,15 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+  background: #0d0a1e;
+  color: #e8e0ff;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1530; }
+::-webkit-scrollbar-thumb { background: #5040a0; border-radius: 3px; }
+
+button { cursor: pointer; }
+input, select, textarea { font-family: inherit; }

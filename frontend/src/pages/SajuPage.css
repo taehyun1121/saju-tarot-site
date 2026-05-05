@@ -1,0 +1,127 @@
+.saju-page { display: flex; flex-direction: column; gap: 24px; }
+
+.saju-form-card, .saju-result > * {
+  background: #1a1530;
+  border: 1px solid #3a2870;
+  border-radius: 12px;
+  padding: 24px;
+}
+.saju-result { display: flex; flex-direction: column; gap: 20px; }
+
+.section-title { font-size: 1.3rem; color: #ffd060; margin-bottom: 20px; }
+
+.saju-form { display: flex; flex-direction: column; gap: 16px; }
+.form-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.form-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 100px; }
+.form-group label { font-size: 0.85rem; color: #9080c0; }
+.form-group input, .form-group select {
+  background: #0d0a1e;
+  border: 1px solid #3a2870;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #e8e0ff;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group select:focus { border-color: #7060c0; }
+
+.gender-btns { display: flex; gap: 8px; }
+.gender-btn {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #3a2870;
+  border-radius: 8px;
+  background: transparent;
+  color: #9080c0;
+  transition: all 0.2s;
+}
+.gender-btn.active { background: #5040a0; border-color: #7060c0; color: #fff; }
+
+.error { color: #ff8080; font-size: 0.9rem; }
+
+.submit-btn {
+  background: linear-gradient(135deg, #5040a0, #7050c0);
+  border: none;
+  color: #fff;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  transition: opacity 0.2s;
+}
+.submit-btn:hover:not(:disabled) { opacity: 0.85; }
+.submit-btn:disabled { opacity: 0.5; }
+
+/* 만세력 */
+.pillars-card h3 { color: #ffd060; margin-bottom: 16px; font-size: 1.1rem; }
+.pillars { display: flex; gap: 12px; margin-bottom: 16px; }
+.pillar {
+  flex: 1;
+  background: #0d0a1e;
+  border: 1px solid #3a2870;
+  border-radius: 10px;
+  padding: 16px 8px;
+  text-align: center;
+}
+.day-pillar { border-color: #ffd060; }
+.pillar-label { font-size: 0.8rem; color: #9080c0; margin-bottom: 8px; }
+.pillar-hanja { font-size: 1.8rem; color: #e8e0ff; letter-spacing: 4px; margin-bottom: 4px; }
+.pillar-korean { font-size: 0.9rem; color: #b0a0d0; }
+.pillar-unknown .pillar-hanja { color: #4a3870; }
+
+.daeun-row, .seun-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding-top: 12px; border-top: 1px solid #2a2050; margin-top: 4px;
+}
+.info-label { font-size: 0.8rem; color: #9080c0; white-space: nowrap; }
+.daeun-item {
+  font-size: 0.9rem; color: #c0b0e0;
+  background: #0d0a1e; border: 1px solid #2a2050;
+  border-radius: 6px; padding: 4px 8px;
+}
+.daeun-item small { font-size: 0.7rem; color: #7060a0; margin-left: 4px; }
+.current-daeun { border-color: #ffd060; color: #ffd060; }
+.seun-value { font-size: 1.1rem; color: #ffd060; font-weight: bold; }
+
+/* 14항목 */
+.reading-card h3 { color: #ffd060; margin-bottom: 16px; font-size: 1.1rem; }
+.accordion { display: flex; flex-direction: column; gap: 6px; }
+.accordion-item { border: 1px solid #2a2050; border-radius: 8px; overflow: hidden; }
+.accordion-header {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  background: #0d0a1e; border: none; color: #e8e0ff;
+  padding: 12px 16px; text-align: left; transition: background 0.2s;
+}
+.accordion-header:hover { background: #15102a; }
+.accordion-item.open .accordion-header { background: #1a1540; }
+.item-num {
+  width: 24px; height: 24px; background: #5040a0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: bold; flex-shrink: 0;
+}
+.item-title { flex: 1; font-size: 0.95rem; }
+.arrow { color: #7060a0; font-size: 0.8rem; }
+.accordion-body {
+  padding: 14px 16px;
+  background: #120f24;
+  color: #c0b0e0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  border-top: 1px solid #2a2050;
+}
+
+.tarot-link-btn {
+  background: linear-gradient(135deg, #804060, #a05080);
+  border: none;
+  color: #fff;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  transition: opacity 0.2s;
+  align-self: flex-start;
+}
+.tarot-link-btn:hover { opacity: 0.85; }
