@@ -264,11 +264,55 @@ function TarotResult({ result }) {
 
       {/* 전체 종합 해석 */}
       {flippedCount === result.cards.length && result.overall_summary && (
-        <div className="mx-5 mb-5 bg-[#1a1238] border border-[#5040a0] rounded-xl p-4">
-          <h4 className="text-[#c0a0ff] text-sm font-bold mb-2">🌟 전체 종합 해석</h4>
-          <p className="text-p-100 text-sm leading-relaxed">{result.overall_summary}</p>
-        </div>
+        <OverallSummary text={result.overall_summary} />
       )}
+    </div>
+  )
+}
+
+/* ── 전체 종합 해석 (3단계 파싱) ── */
+const SUMMARY_SECTIONS = [
+  { sym: '①', label: '위치별 흐름', icon: '📍', color: 'border-[#5060c0] text-[#a0b0ff]' },
+  { sym: '②', label: '카드 간 연결', icon: '🔗', color: 'border-[#705090] text-[#c0a0ff]' },
+  { sym: '③', label: '종합 결론',   icon: '🌟', color: 'border-[#907030] text-[#ffd070]' },
+]
+
+function parseSummary(text) {
+  const idxs = SUMMARY_SECTIONS.map(s => ({ ...s, idx: text.indexOf(s.sym) })).filter(s => s.idx !== -1)
+  if (idxs.length === 0) return [{ label: null, icon: '🌟', color: 'border-[#5040a0] text-[#c0a0ff]', content: text }]
+
+  return idxs.map((s, i) => {
+    const start = s.idx + s.sym.length
+    const end = idxs[i + 1] ? idxs[i + 1].idx : text.length
+    return { label: s.label, icon: s.icon, color: s.color, content: text.slice(start, end).trim() }
+  })
+}
+
+function SummarySection({ icon, label, color, content }) {
+  const sentences = content.split(/(?<=[.。!?!?])\s+/).filter(Boolean)
+  return (
+    <div className={`border-l-[3px] pl-4 py-1 ${color.split(' ')[0]}`}>
+      {label && (
+        <p className={`text-xs font-bold mb-2 ${color.split(' ')[1]}`}>{icon} {label}</p>
+      )}
+      <div className="flex flex-col gap-1.5">
+        {sentences.length > 1
+          ? sentences.map((s, i) => <p key={i} className="text-p-100 text-sm leading-relaxed">{s}</p>)
+          : <p className="text-p-100 text-sm leading-relaxed">{content}</p>
+        }
+      </div>
+    </div>
+  )
+}
+
+function OverallSummary({ text }) {
+  const sections = parseSummary(text)
+  return (
+    <div className="mx-5 mb-5 bg-[#1a1238] border border-[#5040a0] rounded-xl p-4 flex flex-col gap-4">
+      <h4 className="text-[#c0a0ff] text-sm font-bold">🌟 전체 종합 해석</h4>
+      {sections.map((s, i) => (
+        <SummarySection key={i} {...s} />
+      ))}
     </div>
   )
 }
