@@ -275,7 +275,11 @@ function TarotResult({ result }) {
 
 /* ── 카드 1장 해석 ── */
 function CardReading({ card }) {
+  const [showStatic, setShowStatic] = useState(false)
   const [showSaju, setShowSaju] = useState(false)
+
+  const hasAI = !!card.ai_reading
+
   return (
     <div className="bg-app-input border border-p-700 rounded-xl overflow-hidden">
       {/* 카드 헤더 */}
@@ -291,7 +295,6 @@ function CardReading({ card }) {
       </div>
 
       <div className="p-4 flex flex-col gap-3">
-        {/* 포지션 설명 (모바일용) */}
         <p className="text-p-350 text-xs sm:hidden">{card.position_desc}</p>
 
         {/* 키워드 */}
@@ -303,22 +306,47 @@ function CardReading({ card }) {
           </span>
         </div>
 
-        {/* 포지션 해석 */}
-        <div className="bg-app-dark rounded-lg px-4 py-3 border-l-[3px] border-p-400">
-          <p className="text-p-100 text-sm leading-relaxed">{card.meaning}</p>
-        </div>
-
-        {/* 사주 연동 해석 */}
-        {card.saju_meaning && (
-          <div>
-            <button onClick={() => setShowSaju(v => !v)}
-              className="flex items-center gap-1.5 text-xs text-[#a080d0] hover:text-[#c0a0f0] transition-colors">
-              <span>🔮 사주 연동 해석</span>
-              <span>{showSaju ? '▲' : '▼'}</span>
+        {/* AI 해석 (우선) 또는 정적 해석 */}
+        {hasAI ? (
+          <div className="flex flex-col gap-2">
+            <div className="bg-app-dark rounded-lg px-4 py-3 border-l-[3px] border-p-400">
+              <p className="text-p-100 text-sm leading-relaxed">{card.ai_reading}</p>
+            </div>
+            {/* AI 사주 인사이트 */}
+            {card.ai_saju_insight && (
+              <div className="bg-[#1a1030] rounded-lg px-4 py-3 border-l-[3px] border-[#7040b0]">
+                <p className="text-[#c0a0e0] text-xs text-p-350 mb-1">🔮 사주 연동</p>
+                <p className="text-[#c0a0e0] text-sm leading-relaxed">{card.ai_saju_insight}</p>
+              </div>
+            )}
+            {/* 기본 해석 접어두기 */}
+            <button onClick={() => setShowStatic(v => !v)}
+              className="self-start text-xs text-p-350 hover:text-p-200 transition-colors">
+              {showStatic ? '▲ 기본 해석 접기' : '▼ 기본 해석 보기'}
             </button>
-            {showSaju && (
-              <div className="mt-2 bg-[#1a1030] rounded-lg px-4 py-3 border-l-[3px] border-[#7040b0]">
-                <p className="text-[#c0a0e0] text-sm leading-relaxed">{card.saju_meaning}</p>
+            {showStatic && (
+              <div className="bg-app-dark rounded-lg px-4 py-3 border-l-[3px] border-p-600 opacity-70">
+                <p className="text-p-150 text-sm leading-relaxed">{card.meaning}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <div className="bg-app-dark rounded-lg px-4 py-3 border-l-[3px] border-p-400">
+              <p className="text-p-100 text-sm leading-relaxed">{card.meaning}</p>
+            </div>
+            {card.saju_meaning && (
+              <div>
+                <button onClick={() => setShowSaju(v => !v)}
+                  className="flex items-center gap-1.5 text-xs text-[#a080d0] hover:text-[#c0a0f0] transition-colors">
+                  <span>🔮 사주 연동 해석</span>
+                  <span>{showSaju ? '▲' : '▼'}</span>
+                </button>
+                {showSaju && (
+                  <div className="mt-2 bg-[#1a1030] rounded-lg px-4 py-3 border-l-[3px] border-[#7040b0]">
+                    <p className="text-[#c0a0e0] text-sm leading-relaxed">{card.saju_meaning}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
