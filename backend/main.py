@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from typing import Optional
 import random
 
-from saju import calc_pillars, calc_daeun, build_reading, CHEONGAN, JIJI
-from tarot import SPREADS, draw_cards, finalize_cards
+from saju import calc_pillars, calc_daeun, build_reading, build_compatibility_reading, CHEONGAN, JIJI
+from tarot import SPREADS, draw_cards, finalize_cards, get_meaning, get_saju_meaning, get_overall_summary
 
 app = FastAPI(title="사주타로 API")
 
@@ -53,6 +53,37 @@ def calculate_saju(req: SajuRequest):
         "reading": [{"title": t, "content": c} for t, c in reading],
     }
 
+# ── 궁합 ───────────────────────────────────────────────────
+class CompatibilityRequest(BaseModel):
+    person1: SajuRequest
+    person2: SajuRequest
+
+@app.post("/api/compatibility")
+def calculate_compatibility(req: CompatibilityRequest):
+    def saju_data(p):
+        yp, mp, dp, hp = calc_pillars(p.year, p.month, p.day, p.hour)
+        return {
+            "pillars": {
+                "year":  {"korean": yp[0]+yp[1], "hanja": yp[2]},
+                "month": {"korean": mp[0]+mp[1], "hanja": mp[2]},
+                "day":   {"korean": dp[0]+dp[1], "hanja": dp[2]},
+                "hour":  {"korean": hp[0]+hp[1], "hanja": hp[2]} if hp else None,
+            },
+            "ilgan": dp[0],
+        }
+
+    s1 = saju_data(req.person1)
+    s2 = saju_data(req.person2)
+    reading = build_compatibility_reading(
+        req.person1.gender, req.person2.gender,
+        s1["ilgan"], s2["ilgan"]
+    )
+    return {
+        "person1": s1,
+        "person2": s2,
+        "reading": [{"title": t, "content": c} for t, c in reading],
+    }
+
 # ── 타로 ───────────────────────────────────────────────────
 class TarotRequest(BaseModel):
     spread_id: str
@@ -73,6 +104,7 @@ def draw_tarot(req: TarotRequest):
     for i, pos in enumerate(spread["positions"]):
         card = cards[i]
         layout = spread["layout"][i]
+        ilgan = req.saju_context.get("ilgan") if req.saju_context else None
         result_cards.append({
             "position_num": pos["num"],
             "position_name": pos["name"],
@@ -81,10 +113,15 @@ def draw_tarot(req: TarotRequest):
             "reversed": card["reversed"],
             "image": card["image"],
             "keyword": card["keyword"],
+            "meaning": get_meaning(card["name"], card["reversed"], pos["name"]),
+            "saju_meaning": get_saju_meaning(card["name"], card["reversed"], ilgan) if ilgan else "",
             "col": layout["col"],
             "row": layout["row"],
             "cross": layout.get("cross", False),
         })
+
+    ilgan = req.saju_context.get("ilgan") if req.saju_context else None
+    overall = get_overall_summary(result_cards, ilgan=ilgan, question=req.question or "")
 
     return {
         "spread_id": req.spread_id,
@@ -93,6 +130,7 @@ def draw_tarot(req: TarotRequest):
         "cards": result_cards,
         "grid_cols": spread["gridCols"],
         "grid_rows": spread["gridRows"],
+        "overall_summary": overall,
     }
 
 @app.get("/api/spreads")

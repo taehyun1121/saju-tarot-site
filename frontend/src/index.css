@@ -1,4 +1,38 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
+@import "tailwindcss";
+
+@theme {
+  --color-app-deep:   #0d0a1e;
+  --color-app-card:   #1a1530;
+  --color-app-dark:   #120f24;
+  --color-app-input:  #0d0a1e;
+  --color-app-hover:  #1a1030;
+  --color-app-mid:    #13102a;
+
+  --color-p-900: #1a1030;
+  --color-p-800: #2a1850;
+  --color-p-750: #221840;
+  --color-p-700: #2a2050;
+  --color-p-600: #3a2870;
+  --color-p-500: #4a3080;
+  --color-p-400: #5040a0;
+  --color-p-350: #6050a0;
+  --color-p-300: #7060c0;
+  --color-p-200: #9080c0;
+  --color-p-150: #b0a0d0;
+  --color-p-100: #c0b0e0;
+  --color-p-50:  #d0c0f0;
+  --color-p-10:  #e8e0ff;
+
+  --color-gold:        #ffd060;
+  --color-rose-accent: #804060;
+  --color-pink-accent: #a05080;
+
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+}
+
+* { box-sizing: border-box; }
 
 body {
   font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
