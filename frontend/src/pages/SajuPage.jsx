@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { API } from '../api'
 
 const EMPTY_PERSON = { name:'', year:'', month:'', day:'', hour:'', minute:'', gender:'남' }
 
@@ -339,7 +340,7 @@ export default function SajuPage({ onGoToTarot, onSaveHistory }) {
     try {
       if (mode === 'compat' && persons.length === 2) {
         // 궁합 모드
-        const res = await fetch('/api/compatibility', {
+        const res = await fetch(`${API}/compatibility`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ person1: toReq(persons[0]), person2: toReq(persons[1]) })
@@ -356,7 +357,7 @@ export default function SajuPage({ onGoToTarot, onSaveHistory }) {
       } else {
         // 별도 풀이 모드
         const responses = await Promise.all(persons.map(p =>
-          fetch('/api/saju', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(toReq(p)) }).then(r => r.json())
+          fetch(`${API}/saju`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(toReq(p)) }).then(r => r.json())
         ))
         setResults(responses)
         const now = Date.now()

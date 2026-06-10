@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-
-const API = '/api'
+import { API } from '../api'
 const MAX_QUESTIONS = 4
 
 function newQuestion(id) {
