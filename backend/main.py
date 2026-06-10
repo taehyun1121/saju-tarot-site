@@ -11,21 +11,22 @@ import os
 import json
 import re
 
-import anthropic as anthropic_sdk
+from google import genai
+from google.genai import types
 
 from saju import calc_pillars, calc_daeun, build_reading, build_compatibility_reading, CHEONGAN, JIJI, ILGAN_TRAITS
 from tarot import SPREADS, draw_cards, finalize_cards, get_meaning, get_saju_meaning, get_overall_summary
 
-# ── Claude API 클라이언트 ────────────────────────────────────
-_anthropic_client = None
+# ── Gemini API 클라이언트 ────────────────────────────────────
+_gemini_client = None
 
-def get_anthropic_client():
-    global _anthropic_client
-    if _anthropic_client is None:
-        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+def get_gemini_client():
+    global _gemini_client
+    if _gemini_client is None:
+        api_key = os.environ.get("GEMINI_API_KEY", "")
         if api_key:
-            _anthropic_client = anthropic_sdk.Anthropic(api_key=api_key)
-    return _anthropic_client
+            _gemini_client = genai.Client(api_key=api_key)
+    return _gemini_client
 
 _AI_SYSTEM = """당신은 사주명리학과 타로를 함께 활용하는 20년 경력의 전문 상담사입니다.
 반드시 한국어로 답하며, 상담 현장에서 그대로 읽을 수 있는 수준으로 작성합니다.
@@ -113,9 +114,204 @@ def _build_saju_profile(saju_context: dict) -> str:
 
     return "\n".join(lines)
 
+_SAJU_SYSTEM = """당신은 사주명리학 20년 경력의 전문 상담사입니다.
+반드시 한국어로 답하며, 내담자에게 직접 말하듯 따뜻하고 구체적으로 서술합니다.
+
+【풀이 구조 — 반드시 이 순서와 형식을 따르세요】
+
+1. 사주 기본 구성 분석 (일간)
+   - 일간이 상징하는 '나 자신'의 중심 에너지가 무엇인지
+   - 음양·오행 기질, 이 에너지가 이 사람의 삶 전반에서 어떻게 작동하는지
+
+2. 오행 분포 분석 — 장점
+   - 이 사주의 오행 구성에서 나오는 장점을 구체적으로 5가지 나열
+   - 각 장점은 실생활에서 어떻게 발휘되는지 서술
+
+3. 오행 분포 분석 — 단점과 실제 삶의 예시
+   - 오행 편중이나 부족에서 오는 단점들
+   - 각 단점마다 반드시 "예를 들어 ~한 상황에서 ~하게 됩니다"처럼 실제 삶의 예시 포함
+
+4. 월지 — 사회생활과 직업운
+   - 월지가 나타내는 사회적 페르소나
+   - 직업 환경, 어떤 분야에서 능력이 발휘되는지
+
+5. 시주 — 말년운과 자녀·결실
+   - 시주가 나타내는 인생 후반부의 에너지
+   - 자녀운, 노년의 삶의 방향
+
+6. 대운 흐름 — 현재 대운 분석
+   - 현재 대운이 삶에 미치는 영향
+   - 이 대운에서 잘 될 것과 주의할 것
+
+7. 2026년 세운 분석
+   - 올해 어떤 에너지가 들어오는지
+   - 연애·직업·재물·건강 각각 한 문장씩
+
+8. 십성 구조 — 내 성격의 핵심
+   - 주도적인 십성이 무엇인지, 이것이 관계·직업·돈에 어떻게 나타나는지
+
+9. 신살 — 특수한 기운
+   - 이 사주에서 눈에 띄는 신살과 그 의미를 실생활에 연결
+
+10. 종합 조언
+    - 지금 이 사람에게 가장 필요한 메시지 한 가지
+    - 앞으로 3년 흐름 요약
+
+【원칙】
+- 추상적 표현 금지 — 내담자가 "맞다, 내 얘기다"라고 느낄 수 있도록 구체적으로
+- 각 항목은 4-6문장으로 충분히 서술
+- 희망적이되 현실적으로, 과장 없이"""
+
+def generate_ai_saju_reading(pillars: dict, ilgan: str, daeun: list, seun: str, reading: list, gender: str) -> dict:
+    """Gemini API로 AI 사주 해석 생성. 실패 시 빈 dict 반환."""
+    client = get_gemini_client()
+    if not client:
+        return {}
+
+    pillar_text = " / ".join([
+        f"{label} {v['hanja']}({v['korean']})"
+        for label, key in [("년주","year"),("월주","month"),("일주","day"),("시주","hour")]
+        if (v := pillars.get(key))
+    ])
+    trait = ILGAN_TRAITS.get(ilgan, {})
+    ilgan_text = f"{ilgan}({trait.get('오행','')}) — 성격: {trait.get('성격','')}, 단점: {trait.get('단점','')}"
+
+    daeun_text = ""
+    if len(daeun) > 2:
+        cur = daeun[2]
+        daeun_text = f"현재 대운: {cur['hanja']}({cur.get('korean','')}) {cur['start']}~{cur['end']}세"
+
+    reading_text = "\n".join([f"  [{r['title']}]: {r['content']}" for r in reading])
+
+    user_prompt = f"""【내담자 사주 데이터】
+사주 기둥: {pillar_text}
+일간: {ilgan_text}
+성별: {gender}
+{daeun_text}
+2026 세운: {seun}
+
+【기존 계산 데이터】
+{reading_text}
+
+위 시스템 지침의 10개 항목 순서대로 풀이를 작성해 주세요.
+JSON 형식으로만 응답하세요 (코드블록 없이):
+{{
+  "ai_readings": [
+    {{"title": "1. 사주 기본 구성 분석 — 일간", "content": "4-6문장"}},
+    {{"title": "2. 오행 분포 — 장점 5가지", "content": "4-6문장"}},
+    {{"title": "3. 오행 분포 — 단점과 실제 삶의 예시", "content": "4-6문장"}},
+    {{"title": "4. 월지 — 사회생활과 직업운", "content": "4-6문장"}},
+    {{"title": "5. 시주 — 말년운과 자녀·결실", "content": "4-6문장"}},
+    {{"title": "6. 대운 흐름 — 현재 대운 분석", "content": "4-6문장"}},
+    {{"title": "7. 2026년 세운 분석", "content": "4-6문장"}},
+    {{"title": "8. 십성 구조 — 내 성격의 핵심", "content": "4-6문장"}},
+    {{"title": "9. 신살 — 특수한 기운", "content": "4-6문장"}},
+    {{"title": "10. 종합 조언", "content": "4-6문장"}}
+  ],
+  "overall": "지금 이 사람에게 가장 필요한 메시지와 앞으로 3년 흐름 요약 (5-7문장)"
+}}"""
+
+    for attempt in range(2):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=_SAJU_SYSTEM,
+                    max_output_tokens=8000,
+                    response_mime_type="application/json",
+                )
+            )
+            return json.loads(response.text)
+        except Exception as e:
+            print(f"[AI saju error] attempt {attempt+1}: {e}")
+    return {}
+
+def generate_decade_reading(birth_year: int, pillars: dict, ilgan: str, daeun: list, gender: str) -> list:
+    """연대별(10대~70대) 인생 흐름을 Gemini로 해석. 실패 시 빈 리스트 반환."""
+    client = get_gemini_client()
+    if not client:
+        return []
+
+    current_year = 2026
+    trait = ILGAN_TRAITS.get(ilgan, {})
+    pillar_text = " / ".join([
+        f"{label} {v['hanja']}({v['korean']})"
+        for label, key in [("년주","year"),("월주","month"),("일주","day"),("시주","hour")]
+        if (v := pillars.get(key))
+    ])
+
+    # 각 연대(10대~70대)에 해당하는 대운 매핑
+    decades = []
+    for decade_start in range(10, 80, 10):
+        decade_end = decade_start + 9
+        year_start = birth_year + decade_start
+        year_end = birth_year + decade_end
+        # 이 연대에 걸치는 대운 찾기
+        matching = [d for d in daeun if d['start'] < decade_end and d['end'] > decade_start]
+        daeun_info = " / ".join([f"{d['hanja']}({d['korean']}) {d['start']}~{d['end']}세" for d in matching])
+        is_past = (birth_year + decade_end) < current_year
+        is_current = (birth_year + decade_start) <= current_year <= (birth_year + decade_end)
+        status = "과거" if is_past else ("현재" if is_current else "미래")
+        decades.append({
+            "label": f"{decade_start}대",
+            "age_range": f"{decade_start}~{decade_end}세",
+            "years": f"{year_start}~{year_end}년",
+            "daeun": daeun_info or "대운 정보 없음",
+            "status": status,
+        })
+
+    decades_text = "\n".join([
+        f"  {d['label']} ({d['age_range']}, {d['years']}, {d['status']}) — 대운: {d['daeun']}"
+        for d in decades
+    ])
+
+    user_prompt = f"""【내담자 사주】
+출생년도: {birth_year}년 / 성별: {gender}
+사주 기둥: {pillar_text}
+일간: {ilgan}({trait.get('오행','')}) — {trait.get('성격','')}
+
+【연대별 대운 흐름】
+{decades_text}
+
+위 사주와 대운 흐름을 바탕으로 각 연대의 인생을 풀이해주세요.
+- 과거 연대: "이 시기에는 ~했을 것입니다" 형식으로 회고적으로
+- 현재 연대: "지금 이 시기는 ~" 형식으로 현재형으로
+- 미래 연대: "~할 것입니다 / ~에 주의하세요" 형식으로 예언적으로
+- 각 연대별 3-4문장, 대운의 오행 에너지와 일간 기질을 반드시 연결하세요
+
+JSON 형식으로만 응답하세요 (코드블록 없이):
+{{
+  "decades": [
+    {{"label": "10대", "status": "과거/현재/미래", "content": "3-4문장 해석"}},
+    {{"label": "20대", "status": "...", "content": "..."}},
+    {{"label": "30대", "status": "...", "content": "..."}},
+    {{"label": "40대", "status": "...", "content": "..."}},
+    {{"label": "50대", "status": "...", "content": "..."}},
+    {{"label": "60대", "status": "...", "content": "..."}},
+    {{"label": "70대", "status": "...", "content": "..."}}
+  ]
+}}"""
+
+    for attempt in range(2):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=_SAJU_SYSTEM,
+                    max_output_tokens=6000,
+                    response_mime_type="application/json",
+                )
+            )
+            return json.loads(response.text).get("decades", [])
+        except Exception as e:
+            print(f"[decade reading error] attempt {attempt+1}: {e}")
+    return []
+
 def generate_ai_tarot_reading(result_cards: list, spread_name: str, question: str = "", saju_context: dict = None) -> dict:
-    """Claude API로 AI 타로 해석 생성. 실패 시 빈 dict 반환."""
-    client = get_anthropic_client()
+    """Gemini API로 AI 타로 해석 생성. 실패 시 빈 dict 반환."""
+    client = get_gemini_client()
     if not client:
         return {}
 
@@ -134,7 +330,7 @@ def generate_ai_tarot_reading(result_cards: list, spread_name: str, question: st
 
     n = len(result_cards)
     pos_list = " / ".join([f"{i+1}.{c['position_name']}({c['card_name']})" for i, c in enumerate(result_cards)])
-    sec1_min = n * 2  # 포지션당 최소 2문장
+    sec1_min = n * 2
     conclusion = f'"{question}"에 직접 답하고 사주 기질에 맞는 조언으로 마무리' if question else '사주 기질에 맞는 구체적 조언으로 마무리'
     overall_guide = (
         f'① 위치별 흐름({sec1_min}문장 이상): 포지션 [{pos_list}]을 번호 순서대로 하나도 빠짐없이 각 2-3문장씩 서술. '
@@ -161,32 +357,28 @@ JSON 형식으로만 응답하세요 (코드블록 없이):
   "overall_summary": "{overall_guide}"
 }}"""
 
-    try:
-        response = client.messages.create(
-            model="claude-opus-4-7",
-            max_tokens=16000,
-            system=[{
-                "type": "text",
-                "text": _AI_SYSTEM,
-                "cache_control": {"type": "ephemeral"}
-            }],
-            messages=[{"role": "user", "content": user_prompt}]
-        )
-        text = response.content[0].text.strip()
-        text = re.sub(r'^```[a-z]*\n?', '', text, flags=re.MULTILINE)
-        text = re.sub(r'```$', '', text, flags=re.MULTILINE)
-        m = re.search(r'\{[\s\S]*\}', text)
-        if m:
-            return json.loads(m.group())
-    except Exception as e:
-        print(f"[AI reading error] {e}")
+    for attempt in range(2):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=_AI_SYSTEM,
+                    max_output_tokens=16000,
+                    response_mime_type="application/json",
+                )
+            )
+            return json.loads(response.text)
+        except Exception as e:
+            print(f"[AI reading error] attempt {attempt+1}: {e}")
     return {}
 
 app = FastAPI(title="사주타로 API")
 
+_CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173","http://127.0.0.1:5173"],
+    allow_origins=_CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -208,23 +400,32 @@ def calculate_saju(req: SajuRequest):
     reading = build_reading(req.year, req.month, req.day, req.hour,
                             req.gender, yp, mp, dp, hp)
 
-    # 현재 세운 (병오 2026)
     current_year = 2026
     sy_idx = (current_year - 4) % 10
     sj_idx = (current_year - 4) % 12
     seun = CHEONGAN[sy_idx] + JIJI[sj_idx]
 
+    pillars = {
+        "year":  {"korean": yp[0]+yp[1], "hanja": yp[2]},
+        "month": {"korean": mp[0]+mp[1], "hanja": mp[2]},
+        "day":   {"korean": dp[0]+dp[1], "hanja": dp[2]},
+        "hour":  {"korean": hp[0]+hp[1], "hanja": hp[2]} if hp else None,
+    }
+    reading_list = [{"title": t, "content": c} for t, c in reading]
+
+    ai = generate_ai_saju_reading(pillars, dp[0], daeun, seun, reading_list, req.gender)
+    decades = generate_decade_reading(req.year, pillars, dp[0], daeun, req.gender)
+
     return {
-        "pillars": {
-            "year":  {"korean": yp[0]+yp[1], "hanja": yp[2]},
-            "month": {"korean": mp[0]+mp[1], "hanja": mp[2]},
-            "day":   {"korean": dp[0]+dp[1], "hanja": dp[2]},
-            "hour":  {"korean": hp[0]+hp[1], "hanja": hp[2]} if hp else None,
-        },
+        "pillars": pillars,
         "ilgan": dp[0],
         "daeun": daeun,
         "seun": seun,
-        "reading": [{"title": t, "content": c} for t, c in reading],
+        "reading": reading_list,
+        "ai_readings": ai.get("ai_readings", []),
+        "ai_overall": ai.get("overall", ""),
+        "decade_readings": decades,
+        "ai_available": bool(ai),
     }
 
 # ── 궁합 ───────────────────────────────────────────────────
@@ -333,3 +534,7 @@ def get_spreads():
 @app.get("/")
 def root():
     return {"status": "사주타로 API 실행 중"}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}

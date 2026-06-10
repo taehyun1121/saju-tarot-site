@@ -68,23 +68,17 @@ function PersonForm({ person, index, onChange, onRemove, canRemove, label }) {
 }
 
 function Accordion({ items, accentColor = 'bg-p-400' }) {
-  const [openItems, setOpenItems] = useState({})
-  const toggle = i => setOpenItems(prev => ({ ...prev, [i]: !prev[i] }))
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-3">
       {items.map((item, i) => (
         <div key={i} className="border border-p-700 rounded-lg overflow-hidden">
-          <button onClick={() => toggle(i)}
-            className="w-full flex items-center gap-2.5 bg-app-input hover:bg-[#15102a] px-3.5 py-2.5 text-left transition-colors">
+          <div className="flex items-center gap-2.5 bg-app-input px-3.5 py-2.5">
             <span className={`w-5 h-5 ${accentColor} rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0`}>{i+1}</span>
-            <span className="flex-1 text-p-10 text-sm max-sm:text-xs">{item.title}</span>
-            <span className="text-p-350 text-xs">{openItems[i] ? '▲' : '▼'}</span>
-          </button>
-          {openItems[i] && (
-            <div className="px-3.5 py-3 bg-app-dark text-p-100 text-sm leading-relaxed border-t border-p-700 max-sm:text-xs">
-              {item.content}
-            </div>
-          )}
+            <span className="flex-1 text-p-10 text-sm font-semibold max-sm:text-xs">{item.title}</span>
+          </div>
+          <div className="px-3.5 py-3 bg-app-dark text-p-100 text-sm leading-relaxed border-t border-p-700 max-sm:text-xs">
+            {item.content}
+          </div>
         </div>
       ))}
     </div>
@@ -113,13 +107,53 @@ function PillarDisplay({ pillars }) {
   )
 }
 
+const STATUS_STYLE = {
+  '과거': 'border-p-600 text-p-300 bg-app-input',
+  '현재': 'border-gold text-gold bg-[#1a1500]',
+  '미래': 'border-p-400 text-p-100 bg-[#0d0a1a]',
+}
+
+function DecadeTimeline({ decades }) {
+  const [open, setOpen] = useState(null)
+  if (!decades?.length) return null
+  return (
+    <div className="flex flex-col gap-2">
+      {decades.map((d, i) => (
+        <div key={i} className={`border rounded-xl overflow-hidden ${STATUS_STYLE[d.status] || 'border-p-600 text-p-200 bg-app-input'}`}>
+          <button onClick={() => setOpen(open === i ? null : i)}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left">
+            <span className="text-base font-bold w-10 shrink-0">{d.label}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0
+              ${d.status === '현재' ? 'border-gold text-gold bg-[#2a2000]'
+              : d.status === '과거' ? 'border-p-600 text-p-350 bg-app-deep'
+              : 'border-p-400 text-p-200 bg-app-deep'}`}>
+              {d.status}
+            </span>
+            <span className="flex-1 text-xs text-p-300 truncate">{d.content?.slice(0, 40)}…</span>
+            <span className="text-p-400 text-xs shrink-0">{open === i ? '▲' : '▼'}</span>
+          </button>
+          {open === i && (
+            <div className="px-4 pb-4 text-sm leading-relaxed border-t border-p-700 pt-3 text-p-100">
+              {d.content}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /* ── 별도 사주 결과 ── */
 function ResultCard({ result, person, index, historyId, onGoToTarot }) {
+  const [tab, setTab] = useState('ai')
+
   return (
     <div className="bg-app-card border border-p-600 rounded-xl p-6 flex flex-col gap-4 max-sm:p-4">
       <h3 className="text-gold text-lg">
         🔮 {person?.name ? person.name : `대상자 ${index + 1}`} 사주풀이
       </h3>
+
+      {/* 만세력 */}
       <div className="bg-app-dark border border-p-700 rounded-xl p-4">
         <PillarDisplay pillars={result.pillars} />
         <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-p-700 mt-1">
@@ -135,10 +169,62 @@ function ResultCard({ result, person, index, historyId, onGoToTarot }) {
           <span className="text-gold font-bold">{result.seun}</span>
         </div>
       </div>
-      <div className="bg-app-dark border border-p-700 rounded-xl p-4">
-        <h4 className="text-p-50 text-sm mb-3">14항목 풀이</h4>
-        <Accordion items={result.reading} />
+
+      {/* 탭 */}
+      <div className="flex gap-2 flex-wrap">
+        {result.ai_available && (
+          <button onClick={() => setTab('ai')}
+            className={`flex-1 min-w-[80px] py-2 rounded-lg text-sm font-medium border transition-all
+              ${tab === 'ai' ? 'bg-p-400 border-p-300 text-white' : 'bg-transparent border-p-600 text-p-200 hover:border-p-400'}`}>
+            ✨ Gemini 해석
+          </button>
+        )}
+        {result.decade_readings?.length > 0 && (
+          <button onClick={() => setTab('decade')}
+            className={`flex-1 min-w-[80px] py-2 rounded-lg text-sm font-medium border transition-all
+              ${tab === 'decade' ? 'bg-[#2a1a00] border-gold text-gold' : 'bg-transparent border-p-600 text-p-200 hover:border-p-400'}`}>
+            📅 연대별 인생
+          </button>
+        )}
+        <button onClick={() => setTab('raw')}
+          className={`flex-1 min-w-[80px] py-2 rounded-lg text-sm font-medium border transition-all
+            ${tab === 'raw' ? 'bg-p-400 border-p-300 text-white' : 'bg-transparent border-p-600 text-p-200 hover:border-p-400'}`}>
+          📋 사주 데이터
+        </button>
       </div>
+
+      {/* Gemini 해석 탭 */}
+      {tab === 'ai' && result.ai_available && (
+        <div className="flex flex-col gap-3">
+          <div className="bg-app-dark border border-p-700 rounded-xl p-4">
+            <h4 className="text-p-50 text-sm mb-3">✨ Gemini 사주 해석</h4>
+            <Accordion items={result.ai_readings} />
+          </div>
+          {result.ai_overall && (
+            <div className="bg-app-deep border border-gold rounded-xl p-4">
+              <h4 className="text-gold text-sm mb-2">🌟 종합 운세</h4>
+              <p className="text-p-100 text-sm leading-relaxed">{result.ai_overall}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 연대별 인생 탭 */}
+      {tab === 'decade' && result.decade_readings?.length > 0 && (
+        <div className="bg-app-dark border border-p-700 rounded-xl p-4">
+          <h4 className="text-gold text-sm mb-3">📅 연대별 인생 흐름</h4>
+          <DecadeTimeline decades={result.decade_readings} />
+        </div>
+      )}
+
+      {/* 사주 데이터 탭 */}
+      {tab === 'raw' && (
+        <div className="bg-app-dark border border-p-700 rounded-xl p-4">
+          <h4 className="text-p-50 text-sm mb-3">14항목 풀이</h4>
+          <Accordion items={result.reading} />
+        </div>
+      )}
+
       <button onClick={() => onGoToTarot({ ...result, historyId, personName: person?.name || null })}
         className="self-stretch sm:self-start bg-gradient-to-br from-rose-accent to-pink-accent text-white px-5 py-3 rounded-lg font-bold text-sm tracking-wide hover:opacity-85 transition-opacity text-center">
         🃏 {person?.name ? `${person.name} 사주로 타로 보기` : '이 사주로 타로 보기'} →

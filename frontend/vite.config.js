@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [tailwindcss(), react()],
+  define: {
+    __API_BASE__: JSON.stringify(process.env.VITE_API_URL || ''),
+  },
   server: {
     host: true,
     allowedHosts: true,
