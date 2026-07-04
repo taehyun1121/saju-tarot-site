@@ -35,6 +35,8 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          # 커스텀 도메인 전환 스위치 — repo variable CUSTOM_DOMAIN=1이면 base '/'
+          CUSTOM_DOMAIN: ${{ vars.CUSTOM_DOMAIN }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
