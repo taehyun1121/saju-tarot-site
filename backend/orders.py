@@ -88,6 +88,81 @@ BANK_HOLDER = os.environ.get("BANK_HOLDER", "")
 DISCORD_ORDER_WEBHOOK = os.environ.get("DISCORD_ORDER_WEBHOOK", "")
 RTPAY_WEBHOOK_TOKEN = os.environ.get("RTPAY_WEBHOOK_TOKEN", "")
 
+# ── bankapi.co.kr 계좌조회 (입금 확인용) ─────────────────────
+# 무료플랜 월 500건 — 호출은 claim 시 + 60초 간격 재확인으로 절약
+BANKAPI_BASE = os.environ.get("BANKAPI_BASE", "https://api.bankapi.co.kr")
+BANKAPI_API_KEY = os.environ.get("BANKAPI_API_KEY", "")
+BANKAPI_SECRET_KEY = os.environ.get("BANKAPI_SECRET_KEY", "")
+BANKAPI_BANK_CODE = os.environ.get("BANKAPI_BANK_CODE", "")        # NH | KB | WR
+BANKAPI_ACCOUNT_NUMBER = os.environ.get("BANKAPI_ACCOUNT_NUMBER", "")
+BANKAPI_ACCOUNT_PASSWORD = os.environ.get("BANKAPI_ACCOUNT_PASSWORD", "")
+BANKAPI_RESIDENT_PREFIX = os.environ.get("BANKAPI_RESIDENT_PREFIX", "")  # 주민번호 앞 6자리
+
+_bankapi_last_check: dict = {}   # order_id → epoch (호출 스로틀)
+
+
+def _bankapi_enabled():
+    return all([BANKAPI_API_KEY, BANKAPI_SECRET_KEY, BANKAPI_BANK_CODE,
+                BANKAPI_ACCOUNT_NUMBER, BANKAPI_ACCOUNT_PASSWORD, BANKAPI_RESIDENT_PREFIX])
+
+
+def _bankapi_fetch_today():
+    """오늘(±하루) 거래내역 조회. 실패 시 None."""
+    today = now_kst()
+    payload = json.dumps({
+        "bankCode": BANKAPI_BANK_CODE,
+        "accountNumber": BANKAPI_ACCOUNT_NUMBER.replace("-", ""),
+        "accountPassword": BANKAPI_ACCOUNT_PASSWORD,
+        "residentNumber": BANKAPI_RESIDENT_PREFIX,
+        "startDate": (today - timedelta(days=1)).strftime("%Y%m%d"),
+        "endDate": today.strftime("%Y%m%d"),
+    }).encode()
+    req = urllib.request.Request(
+        f"{BANKAPI_BASE}/v1/transactions", data=payload,
+        headers={"Content-Type": "application/json",
+                 "Authorization": f"Bearer {BANKAPI_API_KEY}:{BANKAPI_SECRET_KEY}"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=45) as res:
+            data = json.loads(res.read().decode())
+    except Exception as e:
+        print(f"[bankapi] 조회 실패: {e}")
+        return None
+    if not data.get("success"):
+        print(f"[bankapi] 오류 응답: {data.get('error')} {data.get('message')}")
+        return None
+    return data.get("transactions", [])
+
+
+def _check_bankapi(db, order, throttle_sec=60):
+    """bankapi 거래내역에서 이 주문의 입금을 찾아 승인. 성공 시 True."""
+    import time
+    if not _bankapi_enabled():
+        return False
+    last = _bankapi_last_check.get(order.id, 0)
+    if time.time() - last < throttle_sec:
+        return False
+    _bankapi_last_check[order.id] = time.time()
+
+    txs = _bankapi_fetch_today()
+    if txs is None:
+        return False
+    for tx in txs:
+        if tx.get("type") != "deposit":
+            continue
+        try:
+            amount = int(tx.get("amount") or 0)
+        except (TypeError, ValueError):
+            continue
+        if amount != order.amount:
+            continue
+        name = re.sub(r"\s", "", f"{tx.get('displayName','')}{tx.get('counterparty','')}")
+        buyer = re.sub(r"\s", "", order.buyer_name or "")
+        if (order.code and order.code in name) or (buyer and buyer in name):
+            _approve(db, order, json.dumps(tx, ensure_ascii=False))
+            return True
+    return False
+
 # RTPay 페이로드 필드 매핑 — 실스펙 확인 후 환경변수로 교정
 # 기본값은 흔한 키 후보들을 순서대로 시도
 DEFAULT_FIELD_CANDIDATES = {
@@ -217,6 +292,9 @@ def get_order(order_id: str):
         order = db.get(Order, order_id)
         if not order:
             raise HTTPException(404, "주문을 찾을 수 없습니다")
+        # 입금 확인 대기 중이면 60초 간격으로 bankapi 재확인 (프론트 폴링에 편승)
+        if order.status == "deposit_claimed":
+            _check_bankapi(db, order)
         return {"order_id": order.id, "status": order.status,
                 "product_name": order.product_name, "amount": order.amount}
 
@@ -253,6 +331,10 @@ def claim_deposit(order_id: str):
                 hook.matched_order_id = order.id
                 _approve(db, order, hook.payload)
                 return {"status": "paid"}
+
+        # 웹훅에 없으면 bankapi 계좌조회로 직접 확인
+        if _check_bankapi(db, order, throttle_sec=0):
+            return {"status": "paid"}
 
         order.status = "deposit_claimed"
         db.commit()
