@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { API } from '../api'
 
 const PRODUCTS = [
-  { key: 'single',  name: '심화풀이 단건',   price: 2900, desc: '궁금한 주제 1개를 깊게 풀어드려요', emoji: '🔮' },
-  { key: 'package', name: '심화풀이 패키지', price: 6900, desc: '연애 · 재물 · 직업 3영역 심층 풀이', emoji: '✨', best: true },
-  { key: 'premium', name: '프리미엄 리포트', price: 9900, desc: '전 영역 심층 풀이 + 소장용 PDF', emoji: '📜' },
+  { key: 'single',  name: '집중 심층 리포트',  price: 35000, desc: '궁금한 주제 1개를 뿌리까지 — 시기 분석 + 3~6개월 행동 지침', emoji: '🔮' },
+  { key: 'package', name: '3영역 종합 리포트', price: 55000, desc: '연애 · 재물 · 직업 심층 + 타로 연계 해석', emoji: '✨', best: true },
+  { key: 'premium', name: 'VIP 풀 리포트',    price: 90000, desc: '전 영역 심층 + 10년 대운 로드맵 · 소장용 고급판', emoji: '📜' },
 ]
 
 const ORDER_KEY = 'saju-premium-order'
@@ -114,8 +114,8 @@ export default function PremiumPage() {
   return (
     <div className="max-w-[720px] mx-auto flex flex-col gap-5">
       <div className="text-center">
-        <h2 className="text-gold text-xl font-bold mb-1">💎 심화풀이</h2>
-        <p className="text-p-200 text-sm">무료 풀이에서 못 다룬 시기 · 구체 조언까지 깊게 풀어드립니다</p>
+        <h2 className="text-gold text-xl font-bold mb-1">💎 심층 리포트</h2>
+        <p className="text-p-200 text-sm">무료 풀이에서 못 다룬 시기 · 구체 조언까지 — 전 단계 <b className="text-gold">PDF 해설집</b>으로 보내드립니다</p>
       </div>
 
       {step === 'select' && (
@@ -139,7 +139,8 @@ export default function PremiumPage() {
             </button>
           ))}
           <p className="text-p-200 text-xs text-center mt-1">
-            결제는 무통장입금으로 진행되며, 입금 확인 후 연락처로 결과를 보내드려요
+            결제는 무통장입금으로 진행되며, 입금 확인 후 24시간 내
+            <b className="text-gold"> PDF 해설집</b>을 이메일로 보내드려요
           </p>
         </div>
       )}
@@ -156,7 +157,7 @@ export default function PremiumPage() {
               value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-p-200 text-xs">결과 받으실 연락처 (이메일 또는 카톡 ID) *</label>
+            <label className="text-p-200 text-xs">PDF 해설집 받으실 이메일 *</label>
             <input className={inputCls} placeholder="예: abc@email.com"
               value={form.contact} onChange={e => setForm({ ...form, contact: e.target.value })} />
           </div>
@@ -221,7 +222,7 @@ export default function PremiumPage() {
           <div className="text-4xl">🎉</div>
           <div className="text-gold font-bold text-lg">입금이 확인됐어요!</div>
           <p className="text-p-100 text-sm leading-relaxed">
-            남겨주신 연락처로 <b>24시간 내</b> 심화풀이 결과를 보내드릴게요.<br />
+            남겨주신 이메일로 <b>24시간 내</b> PDF 해설집을 보내드릴게요.<br />
             소중한 신뢰에 정성으로 보답하겠습니다 🙏
           </p>
           <button onClick={resetAll} className="text-p-200 text-xs underline mt-2">처음으로</button>
