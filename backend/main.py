@@ -385,6 +385,9 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+from orders import router as orders_router
+app.include_router(orders_router)
+
 # ── 사주 ───────────────────────────────────────────────────
 class SajuRequest(BaseModel):
     year: int

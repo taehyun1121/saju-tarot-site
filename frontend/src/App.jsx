@@ -2,6 +2,7 @@ import { useState } from 'react'
 import SajuPage from './pages/SajuPage'
 import TarotPage from './pages/TarotPage'
 import HistoryPage from './pages/HistoryPage'
+import PremiumPage from './pages/PremiumPage'
 
 export default function App() {
   const [tab, setTab] = useState('saju')
@@ -41,6 +42,7 @@ export default function App() {
   const tabs = [
     { id: 'saju',    label: '🔮 사주풀이' },
     { id: 'tarot',   label: '🃏 타로카드' },
+    { id: 'premium', label: '💎 심화풀이' },
     { id: 'history', label: `📋 히스토리${history.length > 0 ? ` (${history.length})` : ''}` },
   ]
 
@@ -89,6 +91,7 @@ export default function App() {
             onSaveNewTarot={(entry) => saveHistory([entry])}
           />
         )}
+        {tab === 'premium' && <PremiumPage />}
         {tab === 'history' && (
           <HistoryPage history={history} onClear={clearHistory} />
         )}
