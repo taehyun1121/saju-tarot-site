@@ -3,7 +3,7 @@ import SajuPage from './pages/SajuPage'
 import TarotPage from './pages/TarotPage'
 import HistoryPage from './pages/HistoryPage'
 import PremiumPage from './pages/PremiumPage'
-import { DomainStripBanner, KmongStripBanners } from './components/StripBanners'
+import { DomainStripBanner } from './components/StripBanners'
 
 export default function App() {
   const [tab, setTab] = useState('saju')
@@ -49,7 +49,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <DomainStripBanner />
+      {/* <DomainStripBanner /> — 도메인(gosamtarot.com) 구입 전까지 임시 숨김 (2026-07-11) */}
       <header className="bg-gradient-to-br from-p-900 to-p-800 border-b border-p-500 px-6 py-4 sticky top-0 z-10
                          flex items-center gap-8
                          max-md:flex-col max-md:items-start max-md:gap-3 max-md:px-4 max-md:py-3
@@ -77,8 +77,6 @@ export default function App() {
           ))}
         </nav>
       </header>
-
-      <KmongStripBanners />
 
       <main className="flex-1 p-6 max-w-[1200px] mx-auto w-full
                        max-lg:p-5 max-md:p-4 max-sm:p-3">

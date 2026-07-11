@@ -22,7 +22,7 @@ function PersonForm({ person, index, onChange, onRemove, canRemove, label }) {
         <label className="text-p-200 text-xs">이름 / 별칭</label>
         <input type="text" placeholder="예: 홍길동, 상대방, 나 …"
           value={person.name} onChange={e => update('name', e.target.value)}
-          className="bg-app-input border border-p-600 rounded-lg px-3 py-2 text-p-10 text-sm outline-none focus:border-p-300 placeholder:text-[#4a3870] w-full" />
+          className="bg-app-input border border-p-600 rounded-lg px-3 h-[46px] text-p-10 text-sm outline-none focus:border-p-300 placeholder:text-[#4a3870] w-full" />
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -35,7 +35,7 @@ function PersonForm({ person, index, onChange, onRemove, canRemove, label }) {
             <label className="text-p-200 text-xs">{label}</label>
             <input type="number" placeholder={placeholder} min={min} max={max}
               value={person[field]} onChange={e => update(field, e.target.value)}
-              className="bg-app-input border border-p-600 rounded-lg px-3 py-2 text-p-10 text-sm outline-none focus:border-p-300 placeholder:text-[#4a3870] w-full" />
+              className="bg-app-input border border-p-600 rounded-lg px-3 h-[46px] text-p-10 text-sm outline-none focus:border-p-300 placeholder:text-[#4a3870] w-full" />
           </div>
         ))}
       </div>
@@ -48,7 +48,7 @@ function PersonForm({ person, index, onChange, onRemove, canRemove, label }) {
             <label className="text-p-200 text-xs">{label}</label>
             <input type="number" placeholder={placeholder} min={min} max={max}
               value={person[field]} onChange={e => update(field, e.target.value)}
-              className="bg-app-input border border-p-600 rounded-lg px-3 py-2 text-p-10 text-sm outline-none focus:border-p-300 placeholder:text-[#4a3870] w-full" />
+              className="bg-app-input border border-p-600 rounded-lg px-3 h-[46px] text-p-10 text-sm outline-none focus:border-p-300 placeholder:text-[#4a3870] w-full" />
           </div>
         ))}
         <div className="flex flex-col gap-1.5 flex-1 min-w-[78px]">
@@ -380,7 +380,7 @@ export default function SajuPage({ onGoToTarot, onSaveHistory }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-app-card border border-p-600 rounded-xl p-6 max-sm:p-4">
+      <div className="bg-app-card border border-p-600 rounded-xl p-6 max-sm:p-4 max-w-[680px] mx-auto w-full">
         <h2 className="text-gold text-xl mb-5 max-sm:text-lg max-sm:mb-3">🔮 사주풀이</h2>
 
         <form onSubmit={handleSubmit}>
