@@ -73,11 +73,11 @@ Base.metadata.create_all(engine)
 
 # ── 상품 ─────────────────────────────────────────────────────
 PRODUCTS = {
-    "single": {"name": "집중 심층 리포트", "amount": 35000,
+    "single": {"name": "집중 심층 리포트", "amount": 25000,
                "desc": "궁금한 주제 1개를 뿌리까지 — 시기 분석 + 3~6개월 행동 지침 PDF"},
-    "package": {"name": "3영역 종합 리포트", "amount": 55000,
+    "package": {"name": "3영역 종합 리포트", "amount": 35000,
                 "desc": "연애·재물·직업 3영역 심층 + 타로 연계 해석 PDF"},
-    "premium": {"name": "VIP 풀 리포트", "amount": 90000,
+    "premium": {"name": "VIP 풀 리포트", "amount": 55000,
                 "desc": "전 영역 심층 + 10년 대운 로드맵 — 소장용 고급판 PDF"},
 }
 

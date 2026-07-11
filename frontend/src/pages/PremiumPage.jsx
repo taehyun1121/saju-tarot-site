@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { API } from '../api'
 
 const PRODUCTS = [
-  { key: 'single',  name: '집중 심층 리포트',  price: 35000, desc: '궁금한 주제 1개를 뿌리까지 — 시기 분석 + 3~6개월 행동 지침', emoji: '🔮' },
-  { key: 'package', name: '3영역 종합 리포트', price: 55000, desc: '연애 · 재물 · 직업 심층 + 타로 연계 해석', emoji: '✨', best: true },
-  { key: 'premium', name: 'VIP 풀 리포트',    price: 90000, desc: '전 영역 심층 + 10년 대운 로드맵 · 소장용 고급판', emoji: '📜' },
+  { key: 'single',  name: '집중 심층 리포트',  price: 25000, desc: '궁금한 주제 1개를 뿌리까지 — 시기 분석 + 3~6개월 행동 지침', emoji: '🔮' },
+  { key: 'package', name: '3영역 종합 리포트', price: 35000, desc: '연애 · 재물 · 직업 심층 + 타로 연계 해석', emoji: '✨', best: true },
+  { key: 'premium', name: 'VIP 풀 리포트',    price: 55000, desc: '전 영역 심층 + 10년 대운 로드맵 · 소장용 고급판', emoji: '📜' },
 ]
 
 const ORDER_KEY = 'saju-premium-order'
