@@ -1,9 +1,10 @@
 from dotenv import load_dotenv
 load_dotenv()  # .env 파일에서 환경변수 자동 로드
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from ratelimit import rate_limit
 from pydantic import BaseModel
 from typing import Optional
 import random
@@ -375,11 +376,13 @@ JSON 형식으로만 응답하세요 (코드블록 없이):
 
 app = FastAPI(title="사주타로 API")
 
-_CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*").split(",")
+# 🔒 CORS: 기본 전체(*) 제거 → 프론트 origin 화이트리스트. 필요 시 CORS_ORIGINS 환경변수로 오버라이드(콤마구분).
+_CORS_DEFAULT = "https://taehyun1121.github.io,https://gosamtarot.com,https://www.gosamtarot.com,http://localhost:5173"
+_CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", _CORS_DEFAULT).split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_CORS_ORIGINS,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -397,7 +400,8 @@ class SajuRequest(BaseModel):
     gender: str  # "남" | "여"
 
 @app.post("/api/saju")
-def calculate_saju(req: SajuRequest):
+def calculate_saju(req: SajuRequest, request: Request):
+    rate_limit(request, "saju", limit=10, window_sec=60)   # IP당 분당 10건 — LLM 비용폭탄 방지
     yp, mp, dp, hp = calc_pillars(req.year, req.month, req.day, req.hour)
     daeun = calc_daeun(req.year, req.month, req.day, req.gender)
     reading = build_reading(req.year, req.month, req.day, req.hour,
@@ -437,7 +441,8 @@ class CompatibilityRequest(BaseModel):
     person2: SajuRequest
 
 @app.post("/api/compatibility")
-def calculate_compatibility(req: CompatibilityRequest):
+def calculate_compatibility(req: CompatibilityRequest, request: Request):
+    rate_limit(request, "compat", limit=10, window_sec=60)   # IP당 분당 10건 — LLM 비용폭탄 방지
     def saju_data(p):
         yp, mp, dp, hp = calc_pillars(p.year, p.month, p.day, p.hour)
         return {
@@ -469,7 +474,8 @@ class TarotRequest(BaseModel):
     saju_context: Optional[dict] = None  # 사주 데이터 연동 시
 
 @app.post("/api/tarot/draw")
-def draw_tarot(req: TarotRequest):
+def draw_tarot(req: TarotRequest, request: Request):
+    rate_limit(request, "tarot", limit=10, window_sec=60)   # IP당 분당 10건 — LLM 비용폭탄 방지
     spread = SPREADS.get(req.spread_id)
     if not spread:
         return {"error": "존재하지 않는 스프레드"}

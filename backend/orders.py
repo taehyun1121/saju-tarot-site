@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+from ratelimit import rate_limit
 from sqlalchemy import (Boolean, Column, DateTime, Integer, String, Text,
                         create_engine)
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -249,7 +250,8 @@ class OrderCreate(BaseModel):
 
 
 @router.post("/api/orders")
-def create_order(body: OrderCreate):
+def create_order(body: OrderCreate, request: Request):
+    rate_limit(request, "order", limit=8, window_sec=300)   # IP당 5분 8건 — 스팸·DB팽창 방지
     if body.product not in PRODUCTS:
         raise HTTPException(400, "알 수 없는 상품입니다")
     if not BANK_ACCOUNT:
@@ -351,7 +353,12 @@ def claim_deposit(order_id: str):
 @router.post("/api/webhook/rtpay")
 async def rtpay_webhook(request: Request, token: str = ""):
     """RTPay 입금 알림 수신. 원본 무조건 보관 → 필드 추출 → 매칭."""
-    if RTPAY_WEBHOOK_TOKEN and token != RTPAY_WEBHOOK_TOKEN:
+    # 🔒 토큰 필수(fail-closed): 미설정이면 웹훅 자체를 거부 → 위조 입금 자동승인 차단.
+    #    토큰은 헤더(X-Webhook-Token) 우선, 쿼리(?token=)는 폴백(로그 유출 위험). 상수시간 비교로 타이밍공격 차단.
+    if not RTPAY_WEBHOOK_TOKEN:
+        raise HTTPException(503, "webhook not configured")
+    supplied = request.headers.get("X-Webhook-Token") or token
+    if not supplied or not secrets.compare_digest(str(supplied), RTPAY_WEBHOOK_TOKEN):
         raise HTTPException(403, "invalid token")
 
     body_bytes = await request.body()
