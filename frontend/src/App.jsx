@@ -40,11 +40,19 @@ export default function App() {
     localStorage.removeItem('saju-tarot-history')
   }
 
+  // 🔒 히스토리 = 관리자 전용. URL에 ?admin 또는 #admin 있을 때만 탭 노출(일반 유저에겐 숨김).
+  //    기능·페이지·localStorage 로직은 그대로 유지 — 버튼만 감춤.
+  const isAdmin = (() => {
+    try {
+      return new URLSearchParams(window.location.search).has('admin') || window.location.hash === '#admin'
+    } catch { return false }
+  })()
+
   const tabs = [
-    { id: 'saju',    label: '🔮 사주풀이' },
-    { id: 'tarot',   label: '🃏 타로카드' },
-    { id: 'premium', label: '💎 심화풀이' },
-    { id: 'history', label: `📋 히스토리${history.length > 0 ? ` (${history.length})` : ''}` },
+    { id: 'saju',    label: '🔮 사주로 물어보기' },
+    { id: 'tarot',   label: '🃏 타로로 물어보기' },
+    { id: 'premium', label: '💎 심화 풀이(정밀 리포트)' },
+    ...(isAdmin ? [{ id: 'history', label: `📋 히스토리(관리자)${history.length > 0 ? ` ${history.length}` : ''}` }] : []),
   ]
 
   return (
@@ -58,24 +66,22 @@ export default function App() {
                        text-xl max-md:text-lg max-sm:text-base">
           ✦ 사주풀이 & 타로 ✦
         </h1>
-        <nav className="flex gap-2 max-md:w-full">
-          {tabs.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`
-                border rounded-full transition-all text-sm px-5 py-2
-                max-md:flex-1 max-md:rounded-lg max-md:text-center max-md:px-2 max-md:py-2
-                max-sm:text-xs max-sm:py-1.5
-                ${tab === t.id
-                  ? 'bg-p-400 border-p-300 text-white font-bold'
-                  : 'bg-transparent border-p-500 text-p-150 hover:border-p-350 hover:text-p-50'}
-              `}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
+        {/* 진입 선택 = 셀렉트 박스: 사주로 물어보기 / 타로로 물어보기 중 하나만 (라이트 사이트와 통일) */}
+        <label className="flex items-center gap-2 max-md:w-full">
+          <span className="text-p-200 text-sm whitespace-nowrap max-sm:hidden">무엇을 보시겠어요?</span>
+          <select
+            value={tab}
+            onChange={(e) => setTab(e.target.value)}
+            aria-label="무엇을 보시겠어요?"
+            className="bg-app-input border border-p-500 text-p-10 rounded-lg h-[46px] px-4 text-sm
+                       outline-none focus:border-p-300 cursor-pointer w-[240px]
+                       max-md:w-full"
+          >
+            {tabs.map(t => (
+              <option key={t.id} value={t.id} className="bg-app-card text-p-10">{t.label}</option>
+            ))}
+          </select>
+        </label>
       </header>
 
       <main className="flex-1 p-6 max-w-[1200px] mx-auto w-full
