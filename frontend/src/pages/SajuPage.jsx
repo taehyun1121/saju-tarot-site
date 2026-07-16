@@ -27,28 +27,36 @@ function PersonForm({ person, index, onChange, onRemove, canRemove, label }) {
 
       <div className="flex gap-2 flex-wrap">
         {[
-          { label:'년도 *', field:'year', placeholder:'예: 1990', min:1900, max:2025 },
-          { label:'월 *',   field:'month', placeholder:'1~12',    min:1,    max:12 },
-          { label:'일 *',   field:'day',   placeholder:'1~31',    min:1,    max:31 },
-        ].map(({ label, field, placeholder, min, max }) => (
+          { label:'년도 *', field:'year',  min:1900, max:2025, ph:'년도' },
+          { label:'월 *',   field:'month', min:1,    max:12,   ph:'월' },
+          { label:'일 *',   field:'day',   min:1,    max:31,   ph:'일' },
+        ].map(({ label, field, min, max, ph }) => (
           <div key={field} className="flex flex-col gap-1.5 flex-1 min-w-[78px]">
             <label className="text-p-200 text-xs">{label}</label>
-            <input type="number" placeholder={placeholder} min={min} max={max}
-              value={person[field]} onChange={e => update(field, e.target.value)}
-              className="bg-app-input border border-p-600 rounded-[10px] px-[14px] h-[46px] text-p-10 text-sm outline-none focus:border-p-300 placeholder:text-[#4a3870] w-full" />
+            <select value={person[field]} onChange={e => update(field, e.target.value)}
+              className="bg-app-input border border-p-600 rounded-[10px] px-[10px] h-[46px] text-p-10 text-sm outline-none focus:border-p-300 w-full cursor-pointer">
+              <option value="">{ph}</option>
+              {Array.from({ length: max - min + 1 }, (_, i) => min + i).map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
           </div>
         ))}
       </div>
       <div className="flex gap-2 flex-wrap">
         {[
-          { label:'시간 (0~23)', field:'hour',   placeholder:'모르면 비움', min:0, max:23 },
-          { label:'분 (0~59)',   field:'minute', placeholder:'모르면 비움', min:0, max:59 },
-        ].map(({ label, field, placeholder, min, max }) => (
+          { label:'시간 (0~23)', field:'hour',   min:0, max:23 },
+          { label:'분 (0~59)',   field:'minute', min:0, max:59 },
+        ].map(({ label, field, min, max }) => (
           <div key={field} className="flex flex-col gap-1.5 flex-1 min-w-[78px]">
             <label className="text-p-200 text-xs">{label}</label>
-            <input type="number" placeholder={placeholder} min={min} max={max}
-              value={person[field]} onChange={e => update(field, e.target.value)}
-              className="bg-app-input border border-p-600 rounded-[10px] px-[14px] h-[46px] text-p-10 text-sm outline-none focus:border-p-300 placeholder:text-[#4a3870] w-full" />
+            <select value={person[field]} onChange={e => update(field, e.target.value)}
+              className="bg-app-input border border-p-600 rounded-[10px] px-[10px] h-[46px] text-p-10 text-sm outline-none focus:border-p-300 w-full cursor-pointer">
+              <option value="">모르면 비움</option>
+              {Array.from({ length: max - min + 1 }, (_, i) => min + i).map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
           </div>
         ))}
         <div className="flex flex-col gap-1.5 flex-1 min-w-[78px]">
@@ -306,6 +314,10 @@ export default function SajuPage({ onGoToTarot, onSaveHistory }) {
   const [historyIds, setHistoryIds] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // 궁합보기/VIP 결제자만 '대상 추가'(2명째 상대방) 노출. 결제완료 시 PremiumPage가 이 플래그 세팅.
+  const [compatUnlocked] = useState(() => {
+    try { return localStorage.getItem('saju-compat-unlocked') === '1' } catch { return false }
+  })
 
   const updatePerson = (index, updated) => setPersons(prev => prev.map((p, i) => i === index ? updated : p))
   const addPerson = () => {
@@ -415,7 +427,8 @@ export default function SajuPage({ onGoToTarot, onSaveHistory }) {
           )}
 
           <div className="flex gap-3 mt-1 max-[360px]:flex-col">
-            {!(mode === 'compat' && persons.length >= 2) && (
+            {/* 대상 추가(2명째 상대방)는 궁합보기/VIP 결제자만 노출 (compatUnlocked). 미결제=기본 히든. */}
+            {compatUnlocked && !(mode === 'compat' && persons.length >= 2) && (
               <button type="button" onClick={addPerson}
                 className="flex-1 bg-transparent border border-dashed border-p-400 text-p-200 py-3 rounded-lg text-sm hover:border-p-300 hover:text-p-100 hover:bg-app-hover transition-all">
                 + 대상자 추가

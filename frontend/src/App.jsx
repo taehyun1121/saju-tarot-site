@@ -88,7 +88,8 @@ export default function App() {
           ✦ 사주풀이 & 타로 ✦
         </h1>
         {/* 진입 선택 = 셀렉트 박스: 사주로 물어보기 / 타로로 물어보기 중 하나만 (라이트 사이트와 통일) */}
-        <label className="flex items-center gap-2 max-md:w-full">
+        {/* 일단 히든 — 단일트랙 퍼널(라이트에서 사주/타로 선택→결제→해당 리딩으로 끝맺음)이라 탭 셀렉터 불필요. ?tab= 딥링크로 진입. */}
+        <label style={{ display: 'none' }} className="flex items-center gap-2 max-md:w-full">
           <span className="text-p-200 text-sm whitespace-nowrap max-sm:hidden">무엇을 보시겠어요?</span>
           <select
             value={tab}

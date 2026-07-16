@@ -12,6 +12,9 @@ const PRODUCTS = [
   { key: 'single', name: '집중 리딩', price: 15000, emoji: '🔮',
     desc: '가장 궁금한 1영역만 · 핵심만 빠르게',
     features: ['시기 로드맵 · 궁합 · 택일 중 택1', '핵심만 빠르게'] },
+  { key: 'compat', name: '궁합보기', price: 26000, emoji: '💞',
+    desc: '두 사람 사주로 보는 관계 궁합 (상대방 사주까지 함께)',
+    features: ['두 사람 오행 궁합 — 상생·상극', '시기별 관계 온도 — 언제 가까워지고 멀어지는지', '궁합 점수 + 관계 조언'] },
 ]
 
 // 유료 가치 5가지 ("지도") — 시안 ③
@@ -66,6 +69,13 @@ export default function PremiumPage() {
     return () => clearInterval(pollRef.current)
   }, [])
 
+  // 궁합보기(26000) 또는 VIP 종합(45000, 궁합 포함) 결제자 → SajuPage '대상 추가' 언락
+  const unlockCompat = (amt) => {
+    if (amt === 26000 || amt === 45000) {
+      try { localStorage.setItem('saju-compat-unlocked', '1') } catch { /* ignore */ }
+    }
+  }
+
   const refreshStatus = async (orderId) => {
     try {
       const res = await fetch(`${API}/orders/${orderId}`)
@@ -74,6 +84,7 @@ export default function PremiumPage() {
       setStatus(data.status)
       if (data.status === 'paid') {
         clearInterval(pollRef.current)
+        unlockCompat(data.amount ?? order?.amount)
         setStep('done')
         localStorage.removeItem(ORDER_KEY)
       }
@@ -117,6 +128,7 @@ export default function PremiumPage() {
       if (!res.ok) throw new Error(data.detail || '확인 요청에 실패했습니다')
       setStatus(data.status)
       if (data.status === 'paid') {
+        unlockCompat(order?.amount ?? data.amount)
         setStep('done')
         localStorage.removeItem(ORDER_KEY)
       } else {
