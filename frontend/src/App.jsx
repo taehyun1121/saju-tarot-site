@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import SajuPage from './pages/SajuPage'
 import TarotPage from './pages/TarotPage'
 import HistoryPage from './pages/HistoryPage'
@@ -6,7 +6,16 @@ import PremiumPage from './pages/PremiumPage'
 import { DomainStripBanner } from './components/StripBanners'
 
 export default function App() {
-  const [tab, setTab] = useState('saju')
+  // 초기 탭: URL ?tab=premium 또는 #premium 이면 바로 그 탭(라이트→가격 딥링크·프리뷰용). 없으면 사주.
+  const [tab, setTab] = useState(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('tab')
+      const h = window.location.hash.replace('#', '')
+      const req = q || h
+      if (['saju', 'tarot', 'premium'].includes(req)) return req
+    } catch { /* ignore */ }
+    return 'saju'
+  })
   const [sajuData, setSajuData] = useState(null)
   const [history, setHistory] = useState(() => {
     try {
@@ -14,6 +23,18 @@ export default function App() {
       return saved ? JSON.parse(saved) : []
     } catch { return [] }
   })
+
+  // 시간대 자동 톤 전환: 낮(06~18)=라이트 베이지 / 밤=다크 (라이트 사이트와 통일, 토글 없음).
+  // 1분마다 재확인 → 열어둔 채 경계(18:00 등) 넘으면 자동 전환.
+  useEffect(() => {
+    const apply = () => {
+      const h = new Date().getHours()
+      document.documentElement.dataset.theme = (h >= 6 && h < 18) ? 'light' : 'dark'
+    }
+    apply()
+    const id = setInterval(apply, 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
 
   const saveHistory = (entries) => {
     setHistory(prev => {
@@ -104,6 +125,17 @@ export default function App() {
           <HistoryPage history={history} onClear={clearHistory} />
         )}
       </main>
+
+      {/* 공통 푸터 — 서비스 고지 + 시간대 테마 안내 + 카피라이트 (라이트/가격안내/프로 공통 톤) */}
+      <footer className="border-t border-p-700 px-6 py-6 mt-6 flex flex-col items-center gap-2.5 text-center
+                         max-sm:px-4">
+        <p className="text-p-200 text-[11px] leading-relaxed max-w-[600px]">
+          본 서비스는 사주·타로에 기반한 상담·참고용 콘텐츠로, 오락 및 자기이해를 돕는 목적입니다.
+          의료·법률·재정 등 전문적 판단을 대체하지 않으며, 최종 결정과 책임은 본인에게 있습니다.
+        </p>
+        <p className="text-p-300 text-[11px]">🌗 이 사이트는 지금 시간대에 맞춰 낮·밤 테마가 자동으로 바뀌어요.</p>
+        <p className="text-p-300 text-[11px]">© 2026 고삼타로(thha301) · All rights reserved.</p>
+      </footer>
     </div>
   )
 }

@@ -32,14 +32,42 @@
   --breakpoint-lg: 1024px;
 }
 
+/* ── 시간대 자동 톤 전환: 낮(06~18)=라이트 베이지 / 밤=다크 (라이트 사이트와 통일, 토글 없음) ──
+   App.jsx가 시각 보고 :root[data-theme]를 세팅. 기본(미설정)=다크. */
+:root[data-theme="light"] {
+  --color-app-deep:  #e8dcc4;
+  --color-app-card:  #fffdf6;
+  --color-app-dark:  #efe4cd;
+  --color-app-input: #fffdf6;
+  --color-app-hover: #f5ecd8;
+  --color-app-mid:   #f0e6d2;
+  --color-p-900: #efe4cd;
+  --color-p-800: #e3d5b8;
+  --color-p-750: #e8dcc4;
+  --color-p-700: #d9c49e;
+  --color-p-600: #d3bd93;
+  --color-p-500: #c9ad7d;
+  --color-p-400: #a9793c;
+  --color-p-350: #b98a4c;
+  --color-p-300: #a9793c;
+  --color-p-200: #7d6047;
+  --color-p-150: #6a5647;
+  --color-p-100: #5a4a3a;
+  --color-p-50:  #4a3d30;
+  --color-p-10:  #3b2f2a;
+  --color-gold:  #a9793c;
+}
+
 * { box-sizing: border-box; }
 
 body {
   font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
-  background: #0d0a1e;
-  color: #e8e0ff;
+  background: var(--color-app-deep, #0d0a1e);
+  color: var(--color-p-10, #e8e0ff);
   min-height: 100vh;
 }
+:root[data-theme="light"] ::-webkit-scrollbar-track { background: #efe4cd; }
+:root[data-theme="light"] ::-webkit-scrollbar-thumb { background: #d3bd93; }
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #1a1530; }
