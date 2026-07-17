@@ -163,14 +163,14 @@ export default function TarotPage({ sajuContext, onSaveTarot, onSaveNewTarot }) 
             {/* 배열법 선택 */}
             <div>
               <label className="block text-p-200 text-sm mb-2.5">배열법 선택</label>
-              <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))' }}>
+              <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
                 {spreads.map(s => (
                   <button key={s.id} onClick={() => setSpreadId(s.id)}
-                    className={`border rounded-xl p-3 text-left flex flex-col gap-1 transition-all hover:border-p-400
+                    className={`border rounded-xl p-4 text-left flex flex-col gap-1.5 transition-all hover:border-p-400
                       ${spreadId === s.id ? 'border-gold bg-app-hover' : 'border-p-700 bg-app-input'}`}>
-                    <span className="text-p-10 text-sm font-bold">{s.name}</span>
-                    <span className="text-gold text-xs">{s.cards}장</span>
-                    <span className="text-p-350 text-xs leading-snug">{s.description}</span>
+                    <span className="text-p-10 text-base font-bold">{s.name}</span>
+                    <span className="text-gold text-sm font-semibold">{s.cards}장</span>
+                    <span className="text-p-350 text-sm leading-snug">{s.description}</span>
                   </button>
                 ))}
               </div>
@@ -208,7 +208,7 @@ function TypeCarousel({ typeId, onSelect }) {
     ;[...el.children].forEach((c, i) => {
       const cc = c.offsetLeft + c.offsetWidth / 2
       const norm = Math.min(Math.abs(cc - center) / (el.clientWidth / 2), 1)
-      next[i] = 1 - norm * 0.34   // 정중앙 1.0 → 가장자리 0.66
+      next[i] = 1.14 - norm * 0.44   // 정중앙 1.14(확대 팝업) → 가장자리 0.70
     })
     setScales(next)
   }
@@ -256,17 +256,18 @@ function TypeCarousel({ typeId, onSelect }) {
       <p className="text-p-350 text-xs text-center mb-1">← 좌우로 밀어 유형을 고르세요 →</p>
       <div ref={ref}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up}
-        className="flex gap-3 overflow-x-auto py-4 cursor-grab active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
-        style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', paddingLeft: 'calc(50% - 66px)', paddingRight: 'calc(50% - 66px)' }}>
+        className="flex gap-5 overflow-x-auto py-10 items-center cursor-grab active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
+        style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', paddingLeft: 'calc(50% - 84px)', paddingRight: 'calc(50% - 84px)' }}>
         {QUESTION_TYPES.map((t, i) => {
-          const sc = scales[i] ?? (t.id === typeId ? 1 : 0.7)
+          const sc = scales[i] ?? (t.id === typeId ? 1.14 : 0.72)
+          const focused = sc > 1.02
           return (
             <button key={t.id} onClick={() => pick(i, t.id)} className="shrink-0 select-none"
-              style={{ scrollSnapAlign: 'center', width: '132px', transform: `scale(${sc})`, transition: drag.current.down ? 'none' : 'transform .16s ease-out' }}>
-              <div className={`rounded-xl overflow-hidden border-2 shadow-lg ${typeId === t.id ? 'border-gold' : 'border-p-600'} bg-app-input`}>
-                <img src={t.img} alt={t.label} draggable="false" className="w-full h-[198px] object-cover pointer-events-none" />
+              style={{ scrollSnapAlign: 'center', width: '168px', transformOrigin: 'center center', transform: `scale(${sc})`, transition: drag.current.down ? 'none' : 'transform .18s ease-out', zIndex: focused ? 5 : 1 }}>
+              <div className={`rounded-2xl overflow-hidden border-2 transition-shadow ${typeId === t.id ? 'border-gold shadow-2xl shadow-[#00000066]' : 'border-p-600 shadow-lg'} bg-app-input`}>
+                <img src={t.img} alt={t.label} draggable="false" className="w-full h-[252px] object-cover pointer-events-none" />
               </div>
-              <p className={`text-center mt-2 text-sm font-bold ${typeId === t.id ? 'text-gold' : 'text-p-100'}`}>{t.label}</p>
+              <p className={`text-center mt-3 text-lg font-bold ${typeId === t.id ? 'text-gold' : 'text-p-100'}`}>{t.label}</p>
             </button>
           )
         })}
