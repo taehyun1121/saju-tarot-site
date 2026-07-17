@@ -1,0 +1,16 @@
+# Render 무료 배포 설정 (고삼타로 백엔드) — Railway 대체(체험 만료)
+# Render 대시보드에서 이 레포 연결(Blueprint) 시 자동 인식.
+services:
+  - type: web
+    name: gosamtarot-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false   # 시크릿 — Render 대시보드/환경에서 주입 (레포에 커밋 안 함)
+      - key: CORS_ORIGINS
+        value: "https://gosamtarot.com,https://www.gosamtarot.com,https://taehyun1121.github.io,http://localhost:5173"
