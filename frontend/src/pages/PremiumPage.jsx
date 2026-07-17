@@ -301,7 +301,7 @@ export default function PremiumPage() {
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-p-200 text-xs">궁금한 점 (선택)</label>
-            <textarea className={inputCls} rows={3} style={{ resize: 'none' }}
+            <textarea className={inputCls + ' min-h-[112px] leading-relaxed'} rows={4} style={{ resize: 'none' }}
               placeholder="예: 올해 이직 시기가 궁금해요"
               value={form.question} onChange={e => setForm({ ...form, question: e.target.value })} />
           </div>

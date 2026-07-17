@@ -1,10 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { API } from '../api'
-const MAX_QUESTIONS = 4
 
-function newQuestion(id) {
-  return { id, question: '', spreadId: '', result: null, loading: false }
-}
+// 질문 유형 6종 — 의미 맞는 RWS 메이저카드(퍼블릭도메인) 이미지 (public/type-cards/)
+const QUESTION_TYPES = [
+  { id: 'love',     label: '연애·짝사랑', img: '/type-cards/lovers.jpg',     ph: '예: 지금 이 사람과 잘 될 수 있을까요?' },
+  { id: 'relation', label: '관계·궁합',   img: '/type-cards/temperance.jpg', ph: '예: 우리 두 사람 관계가 어떻게 흘러갈까요?' },
+  { id: 'career',   label: '진로·직업',   img: '/type-cards/magician.jpg',   ph: '예: 지금 이직·도전, 시기가 맞을까요?' },
+  { id: 'money',    label: '금전·재물',   img: '/type-cards/sun.jpg',        ph: '예: 재정 상황이 언제쯤 풀릴까요?' },
+  { id: 'health',   label: '건강',        img: '/type-cards/strength.jpg',   ph: '예: 요즘 건강·컨디션 흐름이 궁금해요.' },
+  { id: 'year',     label: '올해 종합운', img: '/type-cards/wheel.jpg',      ph: '예: 올 한 해 전체 흐름이 어떻게 될까요?' },
+]
 
 function SajuSummaryPanel({ sajuContext }) {
   const [open, setOpen] = useState(false)
@@ -65,8 +70,11 @@ function SajuSummaryPanel({ sajuContext }) {
 export default function TarotPage({ sajuContext, onSaveTarot, onSaveNewTarot }) {
   const [spreads, setSpreads] = useState([])
   const [useSaju, setUseSaju] = useState(false)
-  const [questions, setQuestions] = useState([newQuestion(1)])
-  const [nextId, setNextId] = useState(2)
+  const [typeId, setTypeId] = useState(null)
+  const [question, setQuestion] = useState('')
+  const [spreadId, setSpreadId] = useState('')
+  const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetch(`${API}/spreads`).then(r => r.json()).then(setSpreads)
@@ -76,34 +84,23 @@ export default function TarotPage({ sajuContext, onSaveTarot, onSaveNewTarot }) 
     if (sajuContext) setUseSaju(true)
   }, [sajuContext])
 
-  const updateQ = (id, patch) =>
-    setQuestions(prev => prev.map(q => q.id === id ? { ...q, ...patch } : q))
+  const selectedType = QUESTION_TYPES.find(t => t.id === typeId)
 
-  const addQuestion = () => {
-    if (questions.length >= MAX_QUESTIONS) return
-    setQuestions(prev => [...prev, newQuestion(nextId)])
-    setNextId(n => n + 1)
-  }
-
-  const removeQuestion = (id) =>
-    setQuestions(prev => prev.filter(q => q.id !== id))
-
-  const handleDraw = async (qId) => {
-    const q = questions.find(x => x.id === qId)
-    if (!q?.spreadId) return
-    updateQ(qId, { loading: true, result: null })
+  const handleDraw = async () => {
+    if (!spreadId) return
+    setLoading(true); setResult(null)
     try {
       const res = await fetch(`${API}/tarot/draw`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          spread_id: q.spreadId,
-          question: q.question,
+          spread_id: spreadId,
+          question: question.trim() || (selectedType ? `${selectedType.label} 전반` : ''),
           saju_context: useSaju && sajuContext ? sajuContext : null,
         })
       })
       const data = await res.json()
-      updateQ(qId, { loading: false, result: data })
+      setLoading(false); setResult(data)
 
       if (sajuContext?.historyId && onSaveTarot) {
         onSaveTarot(sajuContext.historyId, data)
@@ -111,7 +108,7 @@ export default function TarotPage({ sajuContext, onSaveTarot, onSaveNewTarot }) 
         onSaveNewTarot({ id: `${Date.now()}_tarot`, timestamp: new Date().toISOString(), type: 'tarot', person: null, saju: null, tarot: data })
       }
     } catch {
-      updateQ(qId, { loading: false })
+      setLoading(false)
       alert('서버 연결 오류')
     }
   }
@@ -125,7 +122,7 @@ export default function TarotPage({ sajuContext, onSaveTarot, onSaveNewTarot }) 
 
       {/* 사주 연동 배너 */}
       {sajuContext && (
-        <div className={`border rounded-lg px-4 py-3 ${sajuContext.type === 'compat' ? 'bg-[#1a102a] border-[#7040b0]' : 'bg-[#1a102a] border-[#5a3080]'}`}>
+        <div className={`border rounded-lg px-4 py-3 max-w-[680px] mx-auto w-full ${sajuContext.type === 'compat' ? 'bg-[#1a102a] border-[#7040b0]' : 'bg-[#1a102a] border-[#5a3080]'}`}>
           <label className={`flex items-center gap-2.5 text-sm cursor-pointer ${sajuContext.type === 'compat' ? 'text-[#c080ff]' : 'text-p-50'}`}>
             <input type="checkbox" checked={useSaju}
               onChange={e => setUseSaju(e.target.checked)}
@@ -141,80 +138,139 @@ export default function TarotPage({ sajuContext, onSaveTarot, onSaveNewTarot }) 
         </div>
       )}
 
-      {/* 질문 카드들 */}
-      {questions.map((q, idx) => (
-        <QuestionCard
-          key={q.id}
-          q={q}
-          idx={idx}
-          spreads={spreads}
-          canRemove={questions.length > 1}
-          onUpdate={patch => updateQ(q.id, patch)}
-          onRemove={() => removeQuestion(q.id)}
-          onDraw={() => handleDraw(q.id)}
-        />
-      ))}
+      {/* 본문 — SajuPage와 동일 폭(max-w-680) */}
+      <div className="max-w-[680px] mx-auto w-full flex flex-col gap-5">
+        {/* 질문 유형 캐러셀 (가로 드래그·center-focus 확대) */}
+        <TypeCarousel typeId={typeId}
+          onSelect={id => { setTypeId(id); setQuestion(''); setSpreadId(''); setResult(null) }} />
 
-      {/* 질문 추가 버튼 */}
-      {questions.length < MAX_QUESTIONS && (
-        <button onClick={addQuestion}
-          className="w-full py-3 border border-dashed border-p-500 text-p-200 rounded-xl text-sm hover:border-p-300 hover:text-p-100 hover:bg-app-hover transition-all">
-          + 질문 추가 ({questions.length}/{MAX_QUESTIONS})
-        </button>
-      )}
+        {/* 유형 선택 후 리딩 패널 */}
+        {selectedType && (
+          <div className="bg-app-card border border-p-600 rounded-2xl p-5 max-sm:p-4 flex flex-col gap-5">
+            <div className="flex items-center gap-2.5">
+              <img src={selectedType.img} alt="" className="w-9 h-12 rounded object-cover border border-p-500 shrink-0" />
+              <h2 className="text-gold text-base font-bold">{selectedType.label} 타로</h2>
+            </div>
+
+            {/* 질문 입력 (텍스트영역, 높이 ↑) */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-p-200 text-sm">질문 입력 (선택)</label>
+              <textarea rows={3} placeholder={selectedType.ph}
+                value={question} onChange={e => setQuestion(e.target.value)}
+                className="bg-app-input border border-p-600 rounded-[10px] px-[14px] py-3 min-h-[96px] text-p-10 text-sm outline-none focus:border-p-300 placeholder:text-[#4a3870] w-full resize-none leading-relaxed" />
+            </div>
+
+            {/* 배열법 선택 */}
+            <div>
+              <label className="block text-p-200 text-sm mb-2.5">배열법 선택</label>
+              <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))' }}>
+                {spreads.map(s => (
+                  <button key={s.id} onClick={() => setSpreadId(s.id)}
+                    className={`border rounded-xl p-3 text-left flex flex-col gap-1 transition-all hover:border-p-400
+                      ${spreadId === s.id ? 'border-gold bg-app-hover' : 'border-p-700 bg-app-input'}`}>
+                    <span className="text-p-10 text-sm font-bold">{s.name}</span>
+                    <span className="text-gold text-xs">{s.cards}장</span>
+                    <span className="text-p-350 text-xs leading-snug">{s.description}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 뽑기 */}
+            <button onClick={handleDraw} disabled={!spreadId || loading}
+              className="w-full bg-gradient-to-br from-p-400 to-p-300 text-white py-3.5 rounded-lg font-bold text-base tracking-wide hover:opacity-85 disabled:opacity-50 transition-opacity">
+              {loading ? '카드 뽑는 중...' : '✨ 카드 뽑기'}
+            </button>
+          </div>
+        )}
+
+        {/* 결과 */}
+        {result && (
+          <div className="bg-app-card border border-p-600 rounded-2xl overflow-hidden">
+            <TarotResult result={result} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-/* ── 질문 1개 카드 ── */
-function QuestionCard({ q, idx, spreads, canRemove, onUpdate, onRemove, onDraw }) {
+/* ── 질문 유형 가로 캐러셀 (드래그 스크롤 · center-focus 확대) ── */
+function TypeCarousel({ typeId, onSelect }) {
+  const ref = useRef(null)
+  const [scales, setScales] = useState({})
+  const drag = useRef({ down: false, startX: 0, startScroll: 0, moved: false })
+
+  const update = () => {
+    const el = ref.current; if (!el) return
+    const center = el.scrollLeft + el.clientWidth / 2
+    const next = {}
+    ;[...el.children].forEach((c, i) => {
+      const cc = c.offsetLeft + c.offsetWidth / 2
+      const norm = Math.min(Math.abs(cc - center) / (el.clientWidth / 2), 1)
+      next[i] = 1 - norm * 0.34   // 정중앙 1.0 → 가장자리 0.66
+    })
+    setScales(next)
+  }
+
+  useEffect(() => {
+    update()
+    const el = ref.current; let raf
+    const onScroll = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(update) }
+    el?.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', update)
+    return () => { el?.removeEventListener('scroll', onScroll); window.removeEventListener('resize', update) }
+  }, [])
+
+  const centerOn = (i, behavior = 'smooth') => {
+    const el = ref.current; if (!el) return
+    const c = el.children[i]
+    el.scrollTo({ left: c.offsetLeft + c.offsetWidth / 2 - el.clientWidth / 2, behavior })
+  }
+
+  const snap = () => {
+    const el = ref.current; if (!el) return
+    const center = el.scrollLeft + el.clientWidth / 2
+    let best = 0, bd = Infinity
+    ;[...el.children].forEach((c, i) => {
+      const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - center)
+      if (d < bd) { bd = d; best = i }
+    })
+    centerOn(best)
+  }
+
+  const down = e => { const el = ref.current; drag.current = { down: true, startX: e.clientX, startScroll: el.scrollLeft, moved: false } }
+  const move = e => {
+    if (!drag.current.down) return
+    const el = ref.current, dx = e.clientX - drag.current.startX
+    if (Math.abs(dx) > 4) drag.current.moved = true
+    el.scrollLeft = drag.current.startScroll - dx
+  }
+  const up = () => { if (!drag.current.down) return; drag.current.down = false; snap() }
+
+  const pick = (i, id) => { if (drag.current.moved) return; onSelect(id); centerOn(i) }
+
   return (
-    <div className="bg-app-card border border-p-600 rounded-xl overflow-hidden">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-p-700 bg-app-dark">
-        <h2 className="text-gold text-base font-bold">🃏 질문 {idx + 1}</h2>
-        {canRemove && (
-          <button onClick={onRemove}
-            className="text-p-350 hover:text-[#e08080] text-xs border border-p-600 hover:border-[#c06060] px-2.5 py-1 rounded-md transition-colors">
-            ✕ 삭제
-          </button>
-        )}
+    <div className="flex flex-col gap-1">
+      <p className="text-p-100 text-sm text-center font-bold">어떤 걸 물어볼까요?</p>
+      <p className="text-p-350 text-xs text-center mb-1">← 좌우로 밀어 유형을 고르세요 →</p>
+      <div ref={ref}
+        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up}
+        className="flex gap-3 overflow-x-auto py-4 cursor-grab active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
+        style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', paddingLeft: 'calc(50% - 66px)', paddingRight: 'calc(50% - 66px)' }}>
+        {QUESTION_TYPES.map((t, i) => {
+          const sc = scales[i] ?? (t.id === typeId ? 1 : 0.7)
+          return (
+            <button key={t.id} onClick={() => pick(i, t.id)} className="shrink-0 select-none"
+              style={{ scrollSnapAlign: 'center', width: '132px', transform: `scale(${sc})`, transition: drag.current.down ? 'none' : 'transform .16s ease-out' }}>
+              <div className={`rounded-xl overflow-hidden border-2 shadow-lg ${typeId === t.id ? 'border-gold' : 'border-p-600'} bg-app-input`}>
+                <img src={t.img} alt={t.label} draggable="false" className="w-full h-[198px] object-cover pointer-events-none" />
+              </div>
+              <p className={`text-center mt-2 text-sm font-bold ${typeId === t.id ? 'text-gold' : 'text-p-100'}`}>{t.label}</p>
+            </button>
+          )
+        })}
       </div>
-
-      <div className="p-5 max-sm:p-4 flex flex-col gap-5">
-        {/* 질문 입력 */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-p-200 text-sm">질문 입력 (선택)</label>
-          <input type="text" placeholder="예: 이 사람과의 관계가 어떻게 될까요?"
-            value={q.question} onChange={e => onUpdate({ question: e.target.value })}
-            className="bg-app-input border border-p-600 rounded-lg px-3 py-2.5 text-p-10 text-base outline-none focus:border-p-300 placeholder:text-[#4a3870]" />
-        </div>
-
-        {/* 배열법 선택 */}
-        <div>
-          <label className="block text-p-200 text-sm mb-2.5">배열법 선택</label>
-          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))' }}>
-            {spreads.map(s => (
-              <button key={s.id} onClick={() => onUpdate({ spreadId: s.id })}
-                className={`border rounded-xl p-3 text-left flex flex-col gap-1 transition-all hover:border-p-400
-                  ${q.spreadId === s.id ? 'border-gold bg-app-hover' : 'border-p-700 bg-app-input'}`}>
-                <span className="text-p-10 text-sm font-bold">{s.name}</span>
-                <span className="text-gold text-xs">{s.cards}장</span>
-                <span className="text-p-350 text-xs leading-snug">{s.description}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 뽑기 버튼 */}
-        <button onClick={onDraw} disabled={!q.spreadId || q.loading}
-          className="w-full bg-gradient-to-br from-p-400 to-p-300 text-white py-3.5 rounded-lg font-bold text-base tracking-wide hover:opacity-85 disabled:opacity-50 transition-opacity">
-          {q.loading ? '카드 뽑는 중...' : '✨ 카드 뽑기'}
-        </button>
-      </div>
-
-      {/* 결과 */}
-      {q.result && <TarotResult result={q.result} />}
     </div>
   )
 }
