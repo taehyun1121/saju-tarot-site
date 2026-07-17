@@ -62,6 +62,9 @@
    bg-gold(BEST뱃지·태그)는 #a9793c 유지 — 채움·보더·장식 전용, 텍스트 금지 원칙 */
 :root[data-theme="light"] .text-gold { color: #6f4b1c; }
 
+/* 화면 전환(유형선택 → 리딩) 페이드+슬라이드 */
+@keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
 * { box-sizing: border-box; }
 
 body {

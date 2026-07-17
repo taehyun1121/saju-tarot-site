@@ -138,56 +138,63 @@ export default function TarotPage({ sajuContext, onSaveTarot, onSaveNewTarot }) 
         </div>
       )}
 
-      {/* 본문 — SajuPage와 동일 폭(max-w-680) */}
+      {/* 본문 — 유형 선택(캐러셀) ↔ 리딩(페이지 전환) */}
       <div className="max-w-[680px] mx-auto w-full flex flex-col gap-5">
-        {/* 질문 유형 캐러셀 (가로 드래그·center-focus 확대) */}
-        <TypeCarousel typeId={typeId}
-          onSelect={id => { setTypeId(id); setQuestion(''); setSpreadId(''); setResult(null) }} />
-
-        {/* 유형 선택 후 리딩 패널 */}
-        {selectedType && (
-          <div className="bg-app-card border border-p-600 rounded-2xl p-5 max-sm:p-4 flex flex-col gap-5">
-            <div className="flex items-center gap-2.5">
-              <img src={selectedType.img} alt="" className="w-9 h-12 rounded object-cover border border-p-500 shrink-0" />
-              <h2 className="text-gold text-base font-bold">{selectedType.label} 타로</h2>
-            </div>
-
-            {/* 질문 입력 (텍스트영역, 높이 ↑) */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-p-200 text-sm">질문 입력 (선택)</label>
-              <textarea rows={3} placeholder={selectedType.ph}
-                value={question} onChange={e => setQuestion(e.target.value)}
-                className="bg-app-input border border-p-600 rounded-[10px] px-[14px] py-3 min-h-[96px] text-p-10 text-sm outline-none focus:border-p-300 placeholder:text-[#4a3870] w-full resize-none leading-relaxed" />
-            </div>
-
-            {/* 배열법 선택 */}
-            <div>
-              <label className="block text-p-200 text-sm mb-2.5">배열법 선택</label>
-              <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
-                {spreads.map(s => (
-                  <button key={s.id} onClick={() => setSpreadId(s.id)}
-                    className={`border rounded-xl p-4 text-left flex flex-col gap-1.5 transition-all hover:border-p-400
-                      ${spreadId === s.id ? 'border-gold bg-app-hover' : 'border-p-700 bg-app-input'}`}>
-                    <span className="text-p-10 text-base font-bold">{s.name}</span>
-                    <span className="text-gold text-sm font-semibold">{s.cards}장</span>
-                    <span className="text-p-350 text-sm leading-snug">{s.description}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 뽑기 */}
-            <button onClick={handleDraw} disabled={!spreadId || loading}
-              className="w-full bg-gradient-to-br from-p-400 to-p-300 text-white py-3.5 rounded-lg font-bold text-base tracking-wide hover:opacity-85 disabled:opacity-50 transition-opacity">
-              {loading ? '카드 뽑는 중...' : '✨ 카드 뽑기'}
+        {!selectedType ? (
+          /* ── 화면 1: 유형 선택 캐러셀 ── */
+          <TypeCarousel typeId={typeId}
+            onSelect={id => { setTypeId(id); setQuestion(''); setSpreadId(''); setResult(null) }} />
+        ) : (
+          /* ── 화면 2: 리딩 페이지 (선택 즉시 전환 → 여기서 답변까지) ── */
+          <div key={typeId} className="flex flex-col gap-5" style={{ animation: 'viewIn .28s ease' }}>
+            <button onClick={() => { setTypeId(null); setQuestion(''); setSpreadId(''); setResult(null) }}
+              className="self-start flex items-center gap-1.5 text-p-200 hover:text-gold text-sm transition-colors">
+              ← 유형 다시 고르기
             </button>
-          </div>
-        )}
 
-        {/* 결과 */}
-        {result && (
-          <div className="bg-app-card border border-p-600 rounded-2xl overflow-hidden">
-            <TarotResult result={result} />
+            <div className="bg-app-card border border-p-600 rounded-2xl p-5 max-sm:p-4 flex flex-col gap-5">
+              <div className="flex items-center gap-2.5">
+                <img src={selectedType.img} alt="" className="w-11 h-16 rounded-lg object-cover border border-p-500 shrink-0" />
+                <h2 className="text-gold text-lg font-bold">{selectedType.label} 타로</h2>
+              </div>
+
+              {/* 질문 입력 (텍스트영역, 높이 ↑) */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-p-200 text-sm">질문 입력 (선택)</label>
+                <textarea rows={3} placeholder={selectedType.ph}
+                  value={question} onChange={e => setQuestion(e.target.value)}
+                  className="bg-app-input border border-p-600 rounded-[10px] px-[14px] py-3 min-h-[96px] text-p-10 text-sm outline-none focus:border-p-300 placeholder:text-[#4a3870] w-full resize-none leading-relaxed" />
+              </div>
+
+              {/* 배열법 선택 */}
+              <div>
+                <label className="block text-p-200 text-sm mb-2.5">배열법 선택</label>
+                <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
+                  {spreads.map(s => (
+                    <button key={s.id} onClick={() => setSpreadId(s.id)}
+                      className={`border rounded-xl p-4 text-left flex flex-col gap-1.5 transition-all hover:border-p-400
+                        ${spreadId === s.id ? 'border-gold bg-app-hover' : 'border-p-700 bg-app-input'}`}>
+                      <span className="text-p-10 text-base font-bold">{s.name}</span>
+                      <span className="text-gold text-sm font-semibold">{s.cards}장</span>
+                      <span className="text-p-350 text-sm leading-snug">{s.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 뽑기 */}
+              <button onClick={handleDraw} disabled={!spreadId || loading}
+                className="w-full bg-gradient-to-br from-p-400 to-p-300 text-white py-3.5 rounded-lg font-bold text-base tracking-wide hover:opacity-85 disabled:opacity-50 transition-opacity">
+                {loading ? '카드 뽑는 중...' : '✨ 카드 뽑기'}
+              </button>
+            </div>
+
+            {/* 결과 — 같은 페이지에서 바로 답변 */}
+            {result && (
+              <div className="bg-app-card border border-p-600 rounded-2xl overflow-hidden">
+                <TarotResult result={result} />
+              </div>
+            )}
           </div>
         )}
       </div>
