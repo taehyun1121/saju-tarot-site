@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { API } from '../api'
 
 // 질문 유형 6종 — 의미 맞는 RWS 메이저카드(퍼블릭도메인) 이미지 (public/type-cards/)
@@ -201,9 +201,21 @@ function TypeCarousel({ typeId, onSelect }) {
   const [scales, setScales] = useState({})
   const drag = useRef({ down: false, startX: 0, startScroll: 0, moved: false })
 
+  const N = QUESTION_TYPES.length
+  const LOOP = 5                              // 카피 5벌 = 무한루프 버퍼
+  const startIdx = Math.floor(LOOP / 2) * N   // 중앙 카피 첫 카드(연애) = 디폴트 시작
+  const copyWidth = N * (168 + 20)            // 카드168 + gap20 → 한 카피 폭
+  const loop = Array.from({ length: LOOP * N }, (_, i) => ({ t: QUESTION_TYPES[i % N], i }))
+
   // 뷰포트 좌표(getBoundingClientRect) 기준 — 가운데정렬 컨테이너(데스크톱)에서도 정확
   const midX = () => { const r = ref.current.getBoundingClientRect(); return r.left + r.width / 2 }
   const cardMid = (c) => { const r = c.getBoundingClientRect(); return r.left + r.width / 2 }
+
+  const nearest = () => {
+    const el = ref.current; const mid = midX(); let best = 0, bd = Infinity
+    ;[...el.children].forEach((c, i) => { const d = Math.abs(cardMid(c) - mid); if (d < bd) { bd = d; best = i } })
+    return best
+  }
 
   const update = () => {
     const el = ref.current; if (!el) return
@@ -216,30 +228,36 @@ function TypeCarousel({ typeId, onSelect }) {
     setScales(next)
   }
 
-  useEffect(() => {
+  // 무한루프: 중앙 이탈(첫/마지막 카피)하면 두 카피만큼 순간 재배치(내용 동일→티 안 남)
+  const normalize = () => {
+    const el = ref.current; if (!el) return
+    const idx = nearest()
+    if (idx < N) { el.scrollLeft += copyWidth * 2; update() }
+    else if (idx >= (LOOP - 1) * N) { el.scrollLeft -= copyWidth * 2; update() }
+  }
+
+  useLayoutEffect(() => {          // 초기: 중앙 카피 연애 카드 정중앙 배치
+    const el = ref.current; if (!el || !el.children[startIdx]) return
+    el.scrollLeft += cardMid(el.children[startIdx]) - midX()
     update()
-    const el = ref.current; let raf
-    const onScroll = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(update) }
+  }, [])
+
+  useEffect(() => {
+    const el = ref.current; let raf, idle
+    const onScroll = () => {
+      cancelAnimationFrame(raf); raf = requestAnimationFrame(update)
+      clearTimeout(idle); idle = setTimeout(() => { if (!drag.current.down) normalize() }, 160)
+    }
     el?.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', update)
-    return () => { el?.removeEventListener('scroll', onScroll); window.removeEventListener('resize', update) }
+    return () => { el?.removeEventListener('scroll', onScroll); window.removeEventListener('resize', update); clearTimeout(idle) }
   }, [])
 
   const centerOn = (i, behavior = 'smooth') => {
     const el = ref.current; if (!el || !el.children[i]) return
     el.scrollBy({ left: cardMid(el.children[i]) - midX(), behavior })
   }
-
-  const snap = () => {
-    const el = ref.current; if (!el) return
-    const mid = midX()
-    let best = 0, bd = Infinity
-    ;[...el.children].forEach((c, i) => {
-      const d = Math.abs(cardMid(c) - mid)
-      if (d < bd) { bd = d; best = i }
-    })
-    centerOn(best)
-  }
+  const snap = () => centerOn(nearest())
 
   const down = e => { const el = ref.current; drag.current = { down: true, startX: e.clientX, startScroll: el.scrollLeft, moved: false } }
   const move = e => {
@@ -250,26 +268,27 @@ function TypeCarousel({ typeId, onSelect }) {
   }
   const up = () => { if (!drag.current.down) return; drag.current.down = false; snap() }
 
-  const pick = (i, id) => { if (drag.current.moved) return; onSelect(id); centerOn(i) }
+  const pick = (i) => { if (drag.current.moved) return; onSelect(QUESTION_TYPES[i % N].id); centerOn(i) }
 
   return (
     <div className="flex flex-col gap-1">
       <p className="text-p-100 text-sm text-center font-bold">어떤 걸 물어볼까요?</p>
-      <p className="text-p-350 text-xs text-center mb-1">← 좌우로 밀어 유형을 고르세요 →</p>
+      <p className="text-p-350 text-xs text-center mb-1">← 좌우로 밀어 유형을 고르세요 (무한 루프) →</p>
       <div ref={ref}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up}
         className="flex gap-5 overflow-x-auto py-10 items-center cursor-grab active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
         style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', paddingLeft: 'calc(50% - 84px)', paddingRight: 'calc(50% - 84px)' }}>
-        {QUESTION_TYPES.map((t, i) => {
-          const sc = scales[i] ?? (t.id === typeId ? 1.14 : 0.72)
+        {loop.map(({ t, i }) => {
+          const active = typeId === t.id
+          const sc = scales[i] ?? (i === startIdx ? 1.14 : 0.72)
           const focused = sc > 1.02
           return (
-            <button key={t.id} onClick={() => pick(i, t.id)} className="shrink-0 select-none"
+            <button key={i} onClick={() => pick(i)} className="shrink-0 select-none"
               style={{ scrollSnapAlign: 'center', width: '168px', transformOrigin: 'center center', transform: `scale(${sc})`, transition: drag.current.down ? 'none' : 'transform .18s ease-out', zIndex: focused ? 5 : 1 }}>
-              <div className={`rounded-2xl overflow-hidden border-2 transition-shadow ${typeId === t.id ? 'border-gold shadow-2xl shadow-[#00000066]' : 'border-p-600 shadow-lg'} bg-app-input`}>
+              <div className={`rounded-2xl overflow-hidden border-2 transition-shadow ${active ? 'border-gold shadow-2xl shadow-[#00000066]' : 'border-p-600 shadow-lg'} bg-app-input`}>
                 <img src={t.img} alt={t.label} draggable="false" className="w-full h-[252px] object-cover pointer-events-none" />
               </div>
-              <p className={`text-center mt-3 text-lg font-bold ${typeId === t.id ? 'text-gold' : 'text-p-100'}`}>{t.label}</p>
+              <p className={`text-center mt-3 text-lg font-bold ${active ? 'text-gold' : 'text-p-100'}`}>{t.label}</p>
             </button>
           )
         })}
