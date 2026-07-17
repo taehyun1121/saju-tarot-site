@@ -47,16 +47,20 @@
   --color-p-700: #d9c49e;
   --color-p-600: #d3bd93;
   --color-p-500: #c9ad7d;
-  --color-p-400: #a9793c;
-  --color-p-350: #b98a4c;
+  --color-p-400: #6e4a1e; /* a11y: 채움CTA(흰텍) 3.83→7.36 PASS (디자인봇 실측) */
+  --color-p-350: #7d5624; /* 위 버튼 hover 톤 */
   --color-p-300: #a9793c;
-  --color-p-200: #7d6047;
+  --color-p-200: #6f5340; /* a11y: 뮤트 서브타이틀 4.25→5.18 PASS */
   --color-p-150: #6a5647;
   --color-p-100: #5a4a3a;
   --color-p-50:  #4a3d30;
   --color-p-10:  #3b2f2a;
   --color-gold:  #a9793c;
 }
+
+/* a11y(디자인봇 실측): 라이트에서 골드 '텍스트'만 #6f4b1c로 (2.82~3.76→5.73~7.64 PASS).
+   bg-gold(BEST뱃지·태그)는 #a9793c 유지 — 채움·보더·장식 전용, 텍스트 금지 원칙 */
+:root[data-theme="light"] .text-gold { color: #6f4b1c; }
 
 * { box-sizing: border-box; }
 

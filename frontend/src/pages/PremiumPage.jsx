@@ -237,7 +237,7 @@ export default function PremiumPage() {
                     ))}
                   </ul>
                   <div className={`mt-4 text-center rounded-lg py-2.5 text-sm font-bold
-                    ${p.best ? 'bg-gold text-[#1a1030]' : 'border border-p-500 text-p-100'}`}>
+                    ${p.best ? 'bg-[#e0a63a] text-[#241606]' : 'border border-p-500 text-p-100'}`}>
                     {p.name} 선택 →
                   </div>
                 </button>
