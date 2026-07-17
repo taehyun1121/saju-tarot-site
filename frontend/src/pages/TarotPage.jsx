@@ -201,13 +201,16 @@ function TypeCarousel({ typeId, onSelect }) {
   const [scales, setScales] = useState({})
   const drag = useRef({ down: false, startX: 0, startScroll: 0, moved: false })
 
+  // 뷰포트 좌표(getBoundingClientRect) 기준 — 가운데정렬 컨테이너(데스크톱)에서도 정확
+  const midX = () => { const r = ref.current.getBoundingClientRect(); return r.left + r.width / 2 }
+  const cardMid = (c) => { const r = c.getBoundingClientRect(); return r.left + r.width / 2 }
+
   const update = () => {
     const el = ref.current; if (!el) return
-    const center = el.scrollLeft + el.clientWidth / 2
+    const mid = midX(), half = el.clientWidth / 2
     const next = {}
     ;[...el.children].forEach((c, i) => {
-      const cc = c.offsetLeft + c.offsetWidth / 2
-      const norm = Math.min(Math.abs(cc - center) / (el.clientWidth / 2), 1)
+      const norm = Math.min(Math.abs(cardMid(c) - mid) / half, 1)
       next[i] = 1.14 - norm * 0.44   // 정중앙 1.14(확대 팝업) → 가장자리 0.70
     })
     setScales(next)
@@ -223,17 +226,16 @@ function TypeCarousel({ typeId, onSelect }) {
   }, [])
 
   const centerOn = (i, behavior = 'smooth') => {
-    const el = ref.current; if (!el) return
-    const c = el.children[i]
-    el.scrollTo({ left: c.offsetLeft + c.offsetWidth / 2 - el.clientWidth / 2, behavior })
+    const el = ref.current; if (!el || !el.children[i]) return
+    el.scrollBy({ left: cardMid(el.children[i]) - midX(), behavior })
   }
 
   const snap = () => {
     const el = ref.current; if (!el) return
-    const center = el.scrollLeft + el.clientWidth / 2
+    const mid = midX()
     let best = 0, bd = Infinity
     ;[...el.children].forEach((c, i) => {
-      const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - center)
+      const d = Math.abs(cardMid(c) - mid)
       if (d < bd) { bd = d; best = i }
     })
     centerOn(best)
