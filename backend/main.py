@@ -246,7 +246,7 @@ JSON 형식으로만 응답하세요 (코드블록 없이):
     for attempt in range(2):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-flash-latest",
                 contents=user_prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=_SAJU_SYSTEM,
@@ -328,7 +328,7 @@ JSON 형식으로만 응답하세요 (코드블록 없이):
     for attempt in range(2):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-flash-latest",
                 contents=user_prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=_SAJU_SYSTEM,
@@ -392,7 +392,7 @@ JSON 형식으로만 응답하세요 (코드블록 없이):
     for attempt in range(2):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-flash-latest",
                 contents=user_prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=_AI_SYSTEM,
