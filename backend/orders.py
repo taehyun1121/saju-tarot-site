@@ -128,7 +128,11 @@ def _bankapi_fetch_today():
     req = urllib.request.Request(
         f"{BANKAPI_BASE}/v1/transactions", data=payload,
         headers={"Content-Type": "application/json",
-                 "Authorization": f"Bearer {BANKAPI_API_KEY}:{BANKAPI_SECRET_KEY}"},
+                 "Authorization": f"Bearer {BANKAPI_API_KEY}:{BANKAPI_SECRET_KEY}",
+                 # 🔴 2026-07-21: 기본 urllib User-Agent("Python-urllib/3.x")가 bankapi.co.kr 앞단
+                 # Cloudflare 봇방어에 걸려 403(IP/클라우드 문제로 오인했었음 — 실제론 이거였음).
+                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                               "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
     )
     try:
         with urllib.request.urlopen(req, timeout=45) as res:
