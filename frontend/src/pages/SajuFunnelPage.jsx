@@ -4,6 +4,7 @@ import '../funnel.css'
 import TheaterFrame from '../components/TheaterFrame'
 import PcIntroScreen from '../components/PcIntroScreen'
 import MobileIntroScreen from '../components/MobileIntroScreen'
+import OrderModal from '../components/OrderModal'
 import useIsDesktop from '../hooks/useIsDesktop'
 import imgEmTarot from '../assets/funnel/em_tarot_blue.jpg'
 import imgEmSaju from '../assets/funnel/em_saju_blue.jpg'
@@ -124,6 +125,7 @@ export default function SajuFunnelPage({ onSelectTarot }) {
   const [sajuResult, setSajuResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [orderOpen, setOrderOpen] = useState(false)
 
   const go = (n) => setScreen(Math.max(0, Math.min(7, n)))
   const specs = sajuResult ? spoSpecs(sajuResult) : spoSpecs(null)
@@ -299,9 +301,10 @@ export default function SajuFunnelPage({ onSelectTarot }) {
             <div className="hdesc" style={{ marginBottom: 18 }}>언제·얼마나·어떻게. 흐릿한 건 제가 다 걷어 드립니다.</div>
             <div className="locked"><div className="blur">2026년 O월, 재물문이 크게 열리고 / 연애는 O월부터 신호가… / 결혼 적기는 20XX…</div><div className="ov">🔒</div></div>
             <div className="pricebox"><div className="p">₩ 9,900</div><div className="pn">4대 운(대박·조심·연애·결혼) 정확 연도 + 전체 풀이 · 완성 PDF 배달</div></div>
-            <button className="cta serif" style={{ width: 520 }} onClick={() => alert('결제 연동 준비 중입니다')}>전체 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
+            <button className="cta serif" style={{ width: 520 }} onClick={() => setOrderOpen(true)}>전체 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
             <button className="pcback" onClick={() => go(0)}>처음으로 돌아가기</button>
           </PcWide>
+          <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="saju4" amount={9900} productName="사주 4대운 전체 풀이" defaultName={form.name} />
         </div>
       )
     }
@@ -434,9 +437,10 @@ export default function SajuFunnelPage({ onSelectTarot }) {
               <div className="hdesc">언제·얼마나·어떻게. 흐릿한 건 제가 다 걷어 드립니다.</div>
               <div className="locked"><div className="blurcard">2026년 O월, 재물문이 크게 열리고 / 연애는 O월부터 신호가… / 결혼 적기는 20XX…</div><div className="lockover">🔒</div></div>
               <div className="pricebox"><div className="p">₩ 9,900</div><div className="pn">4대 운(대박·조심·연애·결혼) 정확 연도 + 전체 풀이</div><div className="mailrow">✉️ 완성 PDF, 이메일·카톡으로 배달</div></div>
-              <button className="cta" onClick={() => alert('결제 연동 준비 중입니다')}>전체 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
+              <button className="cta" onClick={() => setOrderOpen(true)}>전체 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
               <button className="subline" style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => go(0)}>처음으로 돌아가기</button>
             </div>
+            <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="saju4" amount={9900} productName="사주 4대운 전체 풀이" defaultName={form.name} />
           </>
         )}
       </div>

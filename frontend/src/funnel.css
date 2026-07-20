@@ -129,6 +129,66 @@ select.inp{appearance:none;}
    위 콘텐츠와 겹치는 게 실사용자 스크린샷으로 재현됨(480x960 고정폭 테스트로는 못 잡음, 반성).
    → position:absolute 방식을 버리고 .content 안 마지막 자식(일반 흐름)으로 전환 — 어떤 화면 높이/텍스트 길이에서도
    구조적으로 겹칠 수 없음(.content가 overflow-y:auto라 넘치면 스크롤됨). JSX에서 .swipe를 .content 안으로 이동 완료. */
+/* 무통장입금 안내 모달 — 디자인봇 gate:payment_modal 이식 (2026-07-20)
+   기존 .cta/.field/.inp/.notice가 다른 화면에서 이미 쓰이는 클래스명이라 전부 .paymodal 네임스페이스로 스코프. */
+.paymodal-backdrop{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(3,6,13,.74);backdrop-filter:blur(6px);padding:20px;}
+/* 🔴 코코 수정(2026-07-20): .paymodal-backdrop이 grid+place-items:center라 max-width:100%가 실제로 안 먹혀
+   좁은 화면(390px)에서 440px 그대로 넘침(실측 확인, right:460px로 뷰포트 밖). 뷰포트 기준 calc로 직접 캡. */
+.paymodal{width:440px;max-width:calc(100vw - 40px);max-height:88vh;overflow-y:auto;border-radius:22px;position:relative;
+  background:linear-gradient(180deg,rgba(14,21,44,.97),rgba(9,13,28,.98));
+  border:1px solid rgba(212,175,55,.4);box-shadow:0 30px 70px rgba(0,0,0,.62),0 0 0 1px rgba(4,8,16,.4);
+  font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:var(--ink);}
+.paymodal-dan{height:5px;background:repeating-linear-gradient(90deg,#1c3d7a 0 14px,#e3c069 14px 28px,#1f6f4e 28px 42px,#2a52b5 42px 56px,#c0392b 56px 62px);opacity:.92;}
+.paymodal-head{position:relative;padding:22px 26px 6px;text-align:center;}
+.paymodal-head .t{font:800 23px 'Nanum Myeongjo',serif;color:#f7ecd6;letter-spacing:.02em;} .paymodal-head .t b{color:var(--gold);}
+.paymodal-head .s{margin-top:6px;font:600 13px system-ui;color:var(--muted);}
+.paymodal-x{position:absolute;top:16px;right:18px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(255,255,255,.06);border:1px solid rgba(169,180,207,.28);color:var(--muted);font-size:18px;cursor:pointer;}
+.paymodal-body{padding:16px 26px 26px;}
+
+.paymodal-summary{display:flex;justify-content:space-between;align-items:center;background:rgba(42,82,181,.16);border:1px solid rgba(212,175,55,.3);border-radius:14px;padding:14px 18px;margin-bottom:18px;}
+.paymodal-summary .nm{font:700 15px system-ui;color:var(--ink);} .paymodal-summary .pr{font:800 22px 'Nanum Myeongjo',serif;color:var(--gold);}
+
+.paymodal-field{margin-bottom:13px;} .paymodal-field label{display:block;font:700 13px system-ui;color:var(--gold2);margin-bottom:7px;}
+.paymodal-field input{width:100%;background:rgba(9,14,28,.7);border:1px solid rgba(212,175,55,.28);border-radius:11px;padding:13px 14px;font:600 15px system-ui;color:var(--ink);}
+.paymodal-field input::placeholder{color:#7f8aa8;}
+
+.paymodal-cta{display:block;width:100%;text-align:center;margin-top:8px;font:800 17px system-ui;color:#f7f2e0;padding:16px;border-radius:13px;cursor:pointer;
+  background:linear-gradient(180deg,var(--cobalt,#2a52b5),var(--navy,#17306b));box-shadow:0 0 0 2px #d4af37,0 8px 22px rgba(0,0,0,.45);border:none;}
+.paymodal-cta:disabled{opacity:.5;cursor:not-allowed;}
+.paymodal-cta.ghost{background:transparent;color:var(--muted);box-shadow:none;border:1px solid rgba(169,180,207,.3);font-weight:700;font-size:14px;padding:12px;margin-top:10px;}
+
+.paymodal-acc{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;}
+.paymodal-row{display:flex;justify-content:space-between;align-items:center;background:rgba(9,14,28,.6);border:1px solid rgba(212,175,55,.2);border-radius:11px;padding:12px 15px;}
+.paymodal-row .k{font:700 13px system-ui;color:var(--muted);} .paymodal-row .v{font:700 16px system-ui;color:var(--ink);}
+.paymodal-copy{margin-left:10px;font:700 12px system-ui;color:var(--gold);background:rgba(227,192,105,.12);border:1px solid rgba(212,175,55,.4);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap;}
+.paymodal-copy.copied{color:#3fa76a;border-color:#3fa76a;}
+.paymodal-row.hot{background:linear-gradient(180deg,rgba(42,82,181,.22),rgba(23,48,107,.28));border-color:rgba(212,175,55,.55);}
+.paymodal-row.hot .v{font:800 20px 'Consolas','Malgun Gothic',monospace;color:var(--gold);letter-spacing:.02em;}
+
+.paymodal-namebox{background:linear-gradient(180deg,rgba(192,57,43,.14),rgba(42,82,181,.18));border:1.5px solid var(--gold);border-radius:13px;padding:14px 16px;margin-bottom:14px;box-shadow:0 0 0 3px rgba(227,192,105,.1);}
+.paymodal-namebox .lbl{font:800 12px system-ui;color:var(--gold);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.paymodal-namebox .val{display:flex;justify-content:space-between;align-items:center;}
+.paymodal-namebox .nm{font:800 22px 'Nanum Myeongjo',serif;color:#fff3d6;letter-spacing:.03em;}
+.paymodal-namebox .warn{margin-top:8px;font:700 12px system-ui;color:#ffd9a8;line-height:1.5;}
+
+.paymodal-notice{background:rgba(9,14,28,.5);border-left:3px solid var(--gold);border-radius:8px;padding:11px 14px;font:600 12.5px/1.6 system-ui;color:var(--muted);margin-bottom:16px;}
+
+.paymodal-wait{text-align:center;padding:26px 10px 20px;}
+.paymodal-spin{width:54px;height:54px;margin:0 auto 18px;border-radius:50%;border:4px solid rgba(212,175,55,.2);border-top-color:var(--gold);animation:paymodal-spin .9s linear infinite;}
+@keyframes paymodal-spin{to{transform:rotate(360deg);}}
+.paymodal-wait .wt{font:800 19px 'Nanum Myeongjo',serif;color:#f7ecd6;} .paymodal-wait .ws{margin-top:9px;font:600 13px system-ui;color:var(--muted);line-height:1.6;}
+.paymodal-dots{margin-top:14px;display:flex;gap:6px;justify-content:center;}
+.paymodal-dots i{width:7px;height:7px;border-radius:50%;background:var(--gold);opacity:.4;display:inline-block;}
+.paymodal-dots i:nth-child(2){opacity:.7;} .paymodal-dots i:nth-child(3){opacity:1;}
+
+.paymodal-done{text-align:center;padding:22px 10px 16px;}
+.paymodal-check{width:74px;height:74px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;font-size:38px;color:#fff;
+  background:linear-gradient(180deg,#3fa76a,#2c7d4f);box-shadow:0 0 0 6px rgba(63,167,106,.15),0 8px 22px rgba(0,0,0,.4);}
+.paymodal-done .dt{font:800 22px 'Nanum Myeongjo',serif;color:#f7ecd6;} .paymodal-done .ds{margin-top:10px;font:600 14px system-ui;color:var(--muted);line-height:1.7;}
+.paymodal-done .ds b{color:var(--gold);}
+.paymodal-error{color:#e08080;font-size:13px;margin-bottom:10px;}
+
 .swipe{margin-top:20px;text-align:center;font:700 13px system-ui;color:var(--gold);z-index:8;cursor:pointer;}
 .dots{display:flex;gap:6px;justify-content:center;margin-top:8px;}
 .dots i{width:7px;height:7px;border-radius:50%;background:var(--line);display:inline-block;}
@@ -199,7 +259,12 @@ select.inp{appearance:none;}
 .idesc{font:600 13px system-ui;color:#dfe4f1;margin-top:10px;}
 
 /* 넘기기 네비(좌우 탭 영역, 시각요소 없이 터치존만) */
-.navzone{position:absolute;top:64px;bottom:60px;width:34%;z-index:9;cursor:pointer;}
+/* 🔴 코코 수정(2026-07-20): z-index는 부모 stacking context를 못 벗어남 — .navzone(형제, 구 z-index:9)이
+   .content(z-index:6) 전체를 덮어써서 안의 spochipbar/spomnav 클릭이 막히는 버그를 playwright로 실측 발견.
+   .content를 올리면 .top 뒤로가기 버튼(z-index:8)이 가려지는 새 회귀가 남(같은 방법으로 확인) — 대신
+   .navzone을 .content보다 아래로 내림. navzone은 원래 "보조수단"이라 content 전체에 항상 가려져도
+   무방(design 지시 "swipe+버튼+칩이 주 수단, 탭은 백업" 그대로), .top/.dancheong/.seal(8/7/7)은 무관. */
+.navzone{position:absolute;top:64px;bottom:60px;width:34%;z-index:5;cursor:pointer;}
 .navzone.left{left:0;} .navzone.right{right:0;}
 
 /* ===== PC 인트로(영상 배경, ≥900px 전용) =====

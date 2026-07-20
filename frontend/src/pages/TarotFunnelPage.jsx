@@ -3,6 +3,7 @@ import '../funnel.css'
 import { API, API_BASE } from '../api'
 import TheaterFrame from '../components/TheaterFrame'
 import ShuffleFan from '../components/ShuffleFan'
+import OrderModal from '../components/OrderModal'
 import useIsDesktop from '../hooks/useIsDesktop'
 import imgHallWide from '../assets/funnel/hall_wide_1.jpg'
 
@@ -108,6 +109,7 @@ export default function TarotFunnelPage({ onBack: onExit }) {
   const [revealIdx, setRevealIdx] = useState(0)
   const [drawing, setDrawing] = useState(false)
   const [error, setError] = useState('')
+  const [orderOpen, setOrderOpen] = useState(false)
   const isDesktop = useIsDesktop()
 
   useEffect(() => {
@@ -314,9 +316,10 @@ export default function TarotFunnelPage({ onBack: onExit }) {
                 <div className="hdesc">어느 카드가, 무슨 말을 하는지. 흐릿한 건 제가 다 걷어 드립니다.</div>
                 <div className="locked"><div className="blurcard">{drawResult.overall_summary}</div><div className="lockover">🔒</div></div>
                 <div className="pricebox"><div className="p">₩ 7,900</div><div className="pn">{nCards}장 스프레드 전체 뜻 + 질문 종합 풀이</div><div className="mailrow">✉️ 완성 PDF, 이메일·카톡으로 배달</div></div>
-                <button className="cta" onClick={() => alert('결제 연동 준비 중입니다')}>전체 카드 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
+                <button className="cta" onClick={() => setOrderOpen(true)}>전체 카드 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
                 <button className="subline" style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setStage('select')}>처음으로 돌아가기</button>
               </div>
+              <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="tarot_spread" amount={7900} productName={`${drawResult.spread_name} 전체 풀이`} />
             </>
           )}
         </div>
@@ -418,8 +421,9 @@ export default function TarotFunnelPage({ onBack: onExit }) {
             <div className="hdesc" style={{ marginBottom: 18 }}>어느 카드가, 무슨 말을 하는지. 흐릿한 건 제가 다 걷어 드립니다.</div>
             <div className="locked"><div className="blur">{drawResult.overall_summary}</div><div className="ov">🔒</div></div>
             <div className="pricebox"><div className="p">₩ 7,900</div><div className="pn">{nCards}장 스프레드 전체 뜻 + 질문 종합 풀이 · 완성 PDF 배달</div></div>
-            <button className="cta serif" style={{ width: 520 }} onClick={() => alert('결제 연동 준비 중입니다')}>전체 카드 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
+            <button className="cta serif" style={{ width: 520 }} onClick={() => setOrderOpen(true)}>전체 카드 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
             <button className="pcback" onClick={() => setStage('select')}>처음으로 돌아가기</button>
+            <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="tarot_spread" amount={7900} productName={`${drawResult.spread_name} 전체 풀이`} />
           </PcWideTarot>
         </div>
       )
