@@ -3,9 +3,29 @@ import SajuPage from './pages/SajuPage'
 import TarotPage from './pages/TarotPage'
 import HistoryPage from './pages/HistoryPage'
 import PremiumPage from './pages/PremiumPage'
+import SajuFunnelPage from './pages/SajuFunnelPage'
+import TarotFunnelPage from './pages/TarotFunnelPage'
 import { DomainStripBanner } from './components/StripBanners'
 
+// 🔴 2026-07-19 몰입 퍼널(블루골드 신당) 전환 — 디자인봇 확정본 구현.
+//   기존 탭UI는 ?legacy 로만 접근되는 폴백으로 보존(롤백 안전장치).
+function FunnelApp() {
+  const [showTarot, setShowTarot] = useState(false)
+  if (showTarot) {
+    return <TarotFunnelPage onBack={() => setShowTarot(false)} />
+  }
+  return <SajuFunnelPage onSelectTarot={() => setShowTarot(true)} />
+}
+
 export default function App() {
+  const isLegacy = (() => {
+    try { return new URLSearchParams(window.location.search).has('legacy') } catch { return false }
+  })()
+  if (!isLegacy) return <FunnelApp />
+  return <LegacyApp />
+}
+
+function LegacyApp() {
   // 초기 탭: URL ?tab=premium 또는 #premium 이면 바로 그 탭(라이트→가격 딥링크·프리뷰용). 없으면 사주.
   const [tab, setTab] = useState(() => {
     try {

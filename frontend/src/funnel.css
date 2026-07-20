@@ -1,0 +1,363 @@
+/* ===== 고삼타로 몰입 퍼널 — 블루골드 신당(다크 전용, 확정 v3) =====
+   출처: consulting/gosam_funnel/funnel_blue.html·funnel_tarot_blue.html (디자인봇 확정본, gate:gosam_funnel_reskin 7/7)
+   데모 보드(.board/.cap/.wrap/.lab)는 걷어내고 실제 풀스크린 반응형(.ph)으로 변환.
+   구 레드/크림슨 톤 → 코발트/네이비/골드 리스킨(2026-07-19). */
+.funnel-root{
+  --bg:#0a1120; --surface:rgba(16,26,52,.72); --line:rgba(212,175,55,.34);
+  --crimson:#17306b; --red:#2a52b5; --gold:#e3c069; --gold2:#c9a24b; --ink:#f4ead2; --muted:#a9b4cf;
+  --scrim:linear-gradient(180deg,rgba(6,11,26,.5) 0%,rgba(6,11,26,0) 26%,rgba(6,11,26,0) 50%,rgba(6,11,26,.94) 100%);
+  --stage:radial-gradient(120% 75% at 50% 8%, #16273f 0%, #0d1526 55%, #080e1a 100%);
+  --hanji:.10;
+  background:#0b0405; font-family:'SUIT Variable','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+}
+.funnel-root *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+
+/* 폰 프레임 — 모바일=풀스크린, PC=중앙 고정폭(.theater 안 아닐 때의 기본 폴백) */
+.ph{position:relative;width:100vw;height:100dvh;max-width:480px;max-height:960px;overflow:hidden;background:var(--bg);color:var(--ink);
+  box-shadow:0 14px 40px rgba(0,0,0,.5);}
+@media (min-width:900px){
+  .ph{width:420px;height:880px;border-radius:34px;border:1px solid rgba(0,0,0,.4);}
+}
+
+/* ===== PC 극장형(TheaterFrame) — 900px 이상에서만 표시, 그 아래는 전부 숨김(모바일은 .ph 단독) =====
+   출처: consulting/gosam_funnel/funnel_pc_blue.html (디자인봇 확정, gate:gosam_pc_theater 7/7) */
+.theater{position:relative;}
+.theater>.hallbg,.theater>.hallscrim,.theater>.dancheong,.theater>.tframe,.theater>.ttitle,.theater>.nav,.theater>.thint{display:none;}
+@media (min-width:900px){
+  .theater{width:1600px;height:940px;margin:14px auto 40px;border-radius:18px;overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);border:1px solid rgba(0,0,0,.5);}
+  .theater>.hallbg{display:block;position:absolute;inset:0;background-size:cover;filter:blur(3px) brightness(.62) saturate(1.05);transform:scale(1.08);}
+  .theater>.hallscrim{display:block;position:absolute;inset:0;background:
+    radial-gradient(46% 70% at 50% 52%, rgba(4,8,18,.86) 0%, rgba(4,8,18,.5) 42%, rgba(4,8,18,0) 72%),
+    radial-gradient(140% 90% at 50% 120%, rgba(31,63,143,.42), transparent 60%),
+    radial-gradient(120% 60% at 50% -10%, rgba(42,82,181,.26), transparent 60%),
+    linear-gradient(90deg, rgba(3,6,14,.6) 0%, rgba(3,6,14,0) 22%, rgba(3,6,14,0) 78%, rgba(3,6,14,.6) 100%);}
+  .theater>.hallscrim::after{content:'';position:absolute;inset:0;background:
+    radial-gradient(120px 180px at 12% 86%, rgba(227,192,105,.22), transparent 70%),
+    radial-gradient(120px 180px at 88% 86%, rgba(227,192,105,.22), transparent 70%);}
+  .theater>.dancheong{display:block;position:absolute;top:0;left:0;right:0;height:7px;z-index:6;
+    background:repeating-linear-gradient(90deg,#1c3d7a 0 16px,#e3c069 16px 32px,#1f6f4e 32px 48px,#2a52b5 48px 64px,#c0392b 64px 71px);opacity:.92;}
+  .theater>.tframe{display:block;position:absolute;inset:16px;border:1.5px solid var(--line);border-radius:12px;pointer-events:none;z-index:6;box-shadow:inset 0 0 80px rgba(0,0,0,.5);}
+  .theater>.ttitle{display:block;position:absolute;top:24px;left:0;right:0;text-align:center;z-index:7;}
+  .theater>.ttitle .wm{font:800 30px 'Nanum Myeongjo',serif;letter-spacing:.12em;color:var(--ink);text-shadow:0 2px 14px rgba(0,0,0,.8);}
+  .theater>.ttitle .wm b{color:var(--gold);}
+  .theater>.ttitle .sub{display:inline-block;font:700 13px system-ui;color:#efe6cf;letter-spacing:.24em;margin-top:8px;
+    padding:5px 16px;border-radius:999px;background:rgba(6,11,26,.5);border:1px solid rgba(212,175,55,.28);
+    backdrop-filter:blur(3px);text-shadow:0 2px 10px rgba(0,0,0,.95);}
+  .theater>.nav{display:block;position:absolute;top:50%;transform:translateY(-50%);z-index:7;text-align:center;color:var(--gold);opacity:.85;cursor:pointer;}
+  .theater>.nav.l{left:70px;} .theater>.nav.r{right:70px;}
+  .theater>.nav .arw{font:300 62px 'Nanum Myeongjo',serif;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.7);}
+  .theater>.nav .lb{font:700 14px system-ui;color:var(--muted);letter-spacing:.2em;margin-top:6px;}
+  .theater>.thint{display:block;position:absolute;bottom:26px;left:0;right:0;text-align:center;z-index:7;font:700 14px system-ui;color:var(--gold);opacity:.9;letter-spacing:.1em;}
+  .theater>.thint .dots{display:inline-flex;gap:7px;margin-left:14px;vertical-align:middle;}
+  .theater>.thint .dots i{width:8px;height:8px;border-radius:50%;background:rgba(212,175,55,.35);display:inline-block;}
+  .theater>.thint .dots i.on{background:var(--gold);width:20px;border-radius:4px;}
+  .phwrap{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);z-index:7;}
+  .theater .ph{width:380px;height:752px;border-radius:36px;box-shadow:0 26px 70px rgba(0,0,0,.7),0 0 40px rgba(42,82,181,.25);border:1px solid rgba(212,175,55,.28);}
+}
+.stage{position:absolute;inset:0;background:var(--stage);}
+.hero{position:absolute;inset:0;background-size:cover;background-position:center 30%;}
+.scrim{position:absolute;inset:0;background:var(--scrim);}
+.texture{position:absolute;inset:0;background-image:url('./assets/funnel/bg_hanji.jpg');background-size:cover;background-position:center;
+  opacity:var(--hanji);mix-blend-mode:screen;pointer-events:none;}
+.ambient{position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:
+   radial-gradient(70px 110px at 14% 84%, rgba(227,192,105,.24), transparent 70%),
+   radial-gradient(60px 96px at 86% 88%, rgba(227,192,105,.18), transparent 70%),
+   radial-gradient(150% 60% at 50% 120%, rgba(31,63,143,.42), transparent 62%),
+   radial-gradient(120% 40% at 50% -10%, rgba(42,82,181,.22), transparent 60%);}
+.dancheong{position:absolute;top:0;left:0;right:0;height:6px;z-index:7;
+  background:repeating-linear-gradient(90deg,#1c3d7a 0 14px,#e3c069 14px 28px,#1f6f4e 28px 42px,#2a52b5 42px 56px,#c0392b 56px 62px);opacity:.9;}
+.top{position:absolute;top:0;left:0;right:0;height:64px;display:flex;align-items:center;justify-content:center;z-index:8;padding-top:10px;}
+.top .bk{position:absolute;left:16px;top:24px;color:var(--ink);font-size:20px;opacity:.85;cursor:pointer;background:none;border:none;padding:0;}
+.wm{font:800 20px 'Nanum Myeongjo',serif;letter-spacing:.1em;color:var(--ink);text-shadow:0 2px 10px rgba(0,0,0,.6);}
+.wm b{color:var(--gold);}
+.frameborder{position:absolute;inset:14px;border:1.5px solid var(--line);border-radius:22px;pointer-events:none;z-index:5;box-shadow:inset 0 0 46px rgba(0,0,0,.4);}
+.frameborder::before,.frameborder::after{content:'❖';position:absolute;color:var(--gold);font-size:15px;opacity:.85;}
+.frameborder::before{top:-9px;left:50%;transform:translateX(-50%);background:var(--bg);padding:0 6px;}
+.frameborder::after{bottom:-9px;left:50%;transform:translateX(-50%);background:var(--bg);padding:0 6px;}
+.seal{position:absolute;width:52px;height:52px;border-radius:8px;background:#a01f1f;color:#ffe9d6;z-index:7;
+  display:grid;place-items:center;font:800 26px 'Nanum Myeongjo',serif;transform:rotate(-4deg);
+  box-shadow:0 3px 10px rgba(0,0,0,.4);border:2px solid rgba(255,220,190,.35);letter-spacing:-2px;}
+.brush{position:absolute;font-family:'Nanum Brush Script',cursive;color:var(--gold);opacity:.14;z-index:2;line-height:.9;pointer-events:none;}
+.chip{position:relative;z-index:8;align-self:center;background:rgba(11,17,36,.62);border:1px solid rgba(227,192,105,.45);
+  color:var(--ink);font:600 14.5px 'SUIT Variable';padding:9px 18px;border-radius:999px;backdrop-filter:blur(3px);text-shadow:0 1px 4px rgba(0,0,0,.6);text-align:center;}
+.cta{position:relative;z-index:8;display:block;width:100%;text-align:center;font:800 20px 'SUIT Variable';letter-spacing:.02em;color:#fdefc9;padding:17px;border-radius:14px;
+  background:linear-gradient(180deg,#2a52b5,#17306b);box-shadow:0 0 0 2px #d4af37,0 0 22px rgba(212,175,55,.35),inset 0 0 18px rgba(0,0,0,.4);
+  border:none;cursor:pointer;}
+.cta:disabled{opacity:.5;cursor:not-allowed;}
+.cta small{display:block;font:600 12px system-ui;color:#e9c98f;opacity:.9;margin-top:3px;letter-spacing:0;}
+.bottom{position:absolute;left:20px;right:20px;bottom:26px;z-index:8;display:flex;flex-direction:column;gap:12px;}
+.subline{text-align:center;font:600 12px system-ui;color:var(--muted);}
+
+/* 모바일 인트로 영상(MobileIntroScreen) — PC .pcintro-bg와 동일 컨셉, object-fit 배경영상 + 텍스트 페이드인 */
+.mobintro-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;}
+.mobintro .bottom{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease;}
+.mobintro .bottom.in{opacity:1;transform:translateY(0);}
+.content{position:absolute;inset:0;z-index:6;padding:74px 24px 24px;display:flex;flex-direction:column;overflow-y:auto;}
+.ey{font:800 12px system-ui;color:var(--gold);letter-spacing:.16em;}
+.htitle{font:800 27px 'Nanum Myeongjo',serif;letter-spacing:-.01em;line-height:1.3;margin:9px 0 5px;}
+.htitle .r{color:var(--red);} .htitle .g{color:var(--gold);}
+.hdesc{font:500 14px/1.6 system-ui;color:var(--muted);margin-bottom:18px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font:700 13px system-ui;color:var(--gold2);margin-bottom:7px;}
+.inp{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 15px;font:600 15px 'SUIT Variable';color:var(--ink);}
+.inp::placeholder{color:var(--muted);}
+.row2{display:flex;gap:10px;} .row2>*{flex:1;}
+select.inp{appearance:none;}
+
+/* 선택 화면 타일 */
+.tile{position:relative;height:150px;border-radius:16px;overflow:hidden;margin-bottom:13px;border:1.5px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.45),inset 0 0 30px rgba(0,0,0,.4);background-size:cover;background-position:right center;background-color:#12213f;cursor:pointer;width:100%;text-align:left;padding:0;}
+.tile .tsc{position:absolute;inset:0;background:linear-gradient(100deg,rgba(7,12,28,.96) 0%,rgba(7,12,28,.82) 40%,rgba(7,12,28,.15) 72%,rgba(7,12,28,0) 100%);}
+.tile .tmeta{position:absolute;left:18px;bottom:16px;right:80px;}
+.tile .tmeta h3{font:800 19px 'Nanum Myeongjo',serif;color:#f7ecd6;margin-bottom:3px;text-shadow:0 1px 6px rgba(0,0,0,.7);}
+.tile .tmeta p{font:600 12.5px system-ui;color:#e6cba9;text-shadow:0 1px 4px rgba(0,0,0,.7);}
+.tile .tarw{position:absolute;right:14px;bottom:16px;font:800 13px 'SUIT Variable';color:var(--gold);}
+
+/* 스포 화면 */
+.spobadge{align-self:flex-start;display:inline-flex;align-items:center;gap:7px;background:linear-gradient(180deg,#2a52b5,#12224a);border:1px solid var(--line);color:var(--gold);font:800 15px 'SUIT Variable';padding:8px 16px;border-radius:999px;}
+.graph{margin:16px 0 8px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 14px 10px;}
+.graph .yrs{display:flex;justify-content:space-between;font:600 11px system-ui;color:var(--muted);margin-top:6px;}
+.spoline{font:800 22px 'Nanum Myeongjo',serif;line-height:1.35;margin-top:8px;}
+.spoline .hl{color:var(--gold);}
+.reading{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 17px;font:600 15.5px/1.85 system-ui;color:var(--ink);box-shadow:inset 0 0 22px rgba(0,0,0,.24);}
+.reading b{color:var(--gold);font-weight:800;}
+.rd{display:inline-block;color:transparent;background:linear-gradient(90deg,#2a52b5,#12224a);border-radius:4px;padding:0 3px;filter:blur(1.4px);user-select:none;font-weight:800;}
+.lockline{margin-top:12px;display:flex;align-items:center;gap:7px;font:700 13px system-ui;color:var(--gold);opacity:.95;}
+/* 🔴 코코 재조정(2026-07-19): bottom 고정 픽셀값은 실제 폰 가변 높이(주소창 등으로 뷰포트 축소)+긴 리딩텍스트 조합에서
+   위 콘텐츠와 겹치는 게 실사용자 스크린샷으로 재현됨(480x960 고정폭 테스트로는 못 잡음, 반성).
+   → position:absolute 방식을 버리고 .content 안 마지막 자식(일반 흐름)으로 전환 — 어떤 화면 높이/텍스트 길이에서도
+   구조적으로 겹칠 수 없음(.content가 overflow-y:auto라 넘치면 스크롤됨). JSX에서 .swipe를 .content 안으로 이동 완료. */
+.swipe{margin-top:20px;text-align:center;font:700 13px system-ui;color:var(--gold);z-index:8;cursor:pointer;}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:8px;}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--line);display:inline-block;}
+.dots i.on{background:var(--gold);width:18px;border-radius:4px;}
+
+/* 모바일 스포 넘기기 UI — swipe제스처+하단칩바+코치마크 (디자인봇 gate:spo_nav 목업 이식, 2026-07-20)
+   .swipe/.dots(위)는 타로 리빌 화면(TarotFunnelPage)이 아직 재사용 중이라 그대로 두고, 이 화면 전용 클래스는 spo* 접두로 분리. */
+.spocard{position:relative;transition:transform .25s;}
+.spocard.dragging{transition:none;}
+.nextpeek{position:absolute;top:0;bottom:0;right:-14px;width:18px;border-radius:14px;
+  background:rgba(9,14,30,.55);border:1px solid rgba(212,175,55,.22);pointer-events:none;}
+.spochipbar{display:flex;gap:8px;padding:2px;margin-top:18px;overflow-x:auto;scroll-behavior:smooth;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);}
+.spochipbar::-webkit-scrollbar{display:none;}
+.spochip{flex:none;display:inline-flex;align-items:center;gap:5px;font:700 13px system-ui;color:var(--muted);
+  padding:8px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--line);white-space:nowrap;cursor:pointer;}
+.spochip.active{color:#0a1024;background:linear-gradient(180deg,var(--gold),#c9a24b);font-weight:800;border-color:var(--gold);box-shadow:0 2px 12px rgba(227,192,105,.4);}
+.spochip.done{color:#c9a24b;}
+.spomnav{display:flex;gap:10px;align-items:center;margin-top:12px;}
+.spomprev{flex:none;width:46px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:19px;color:var(--muted);background:var(--surface);border:1px solid var(--line);cursor:pointer;}
+.spomprev:disabled{opacity:.35;cursor:not-allowed;}
+.spomnext{flex:1;height:44px;border-radius:12px;display:grid;place-items:center;font:800 15px system-ui;color:#f7f2e0;background:linear-gradient(180deg,#2a52b5,#17306b);box-shadow:0 0 0 2px #d4af37,0 6px 18px rgba(0,0,0,.45);cursor:pointer;border:none;}
+.spocoach{position:absolute;inset:0;z-index:12;background:rgba(3,6,13,.5);backdrop-filter:blur(1px);display:grid;place-items:center;pointer-events:none;}
+.spocoach .box{text-align:center;}
+.spocoach .finger{font-size:52px;filter:drop-shadow(0 4px 10px #000);animation:spofinger 1.5s ease forwards;display:inline-block;}
+.spocoach .txt{font:800 16px system-ui;color:#f7ecd6;text-shadow:0 2px 10px #000;margin-top:6px;}
+.spocoach .txt b{color:var(--gold);}
+@keyframes spofinger{0%{transform:translateX(28px);opacity:1;}70%{transform:translateX(-16px);opacity:1;}100%{transform:translateX(-16px);opacity:0;}}
+
+/* 페이월 */
+.locked{position:relative;margin:6px 0 16px;border-radius:16px;overflow:hidden;border:1px solid var(--line);}
+.locked .blurcard{filter:blur(6px);padding:18px;background:var(--surface);font:600 15px/1.9 system-ui;color:var(--ink);}
+.locked .lockover{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,3,4,.4);font-size:34px;color:var(--gold);}
+.pricebox{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center;margin-bottom:14px;box-shadow:inset 0 0 24px rgba(0,0,0,.24);}
+.pricebox .p{font:800 30px 'Nanum Myeongjo',serif;color:var(--gold);}
+.pricebox .pn{font:600 12.5px system-ui;color:var(--muted);margin-top:4px;}
+.mailrow{display:flex;align-items:center;gap:8px;justify-content:center;font:600 12.5px system-ui;color:var(--muted);margin-top:10px;}
+
+/* 타로 전용: 선택카드/질문박스 (출처: funnel_tarot_blue.html) */
+.selcard{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:inset 0 0 24px rgba(0,0,0,.28);}
+.selcard .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:linear-gradient(180deg,#2a52b5,#12224a);border:1px solid var(--line);color:var(--gold);}
+.selcard h3{font:800 17px 'SUIT Variable';margin-bottom:2px;} .selcard p{font:500 12.5px system-ui;color:var(--muted);} .selcard .arw{margin-left:auto;color:var(--gold);font-size:18px;}
+.tile .tkr{position:absolute;right:16px;top:10px;font:800 40px 'Nanum Myeongjo',serif;color:rgba(227,192,105,.9);text-shadow:0 2px 10px rgba(0,0,0,.6);}
+.qbox{width:100%;min-height:120px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px;font:600 15px/1.6 'SUIT Variable';color:var(--muted);}
+
+/* 타로 전용: 카드뽑기 부채꼴 */
+.fan{position:relative;height:270px;margin-top:26px;display:flex;justify-content:center;align-items:flex-end;}
+.cardback{border-radius:12px;background:linear-gradient(150deg,#17306b,#0c1730 55%,#2a52b5);border:2px solid #d4af37;position:relative;box-shadow:0 8px 20px rgba(0,0,0,.5);}
+.cardback::after{content:'☯';position:absolute;inset:0;display:grid;place-items:center;color:rgba(227,192,105,.55);font-size:34px;}
+.cardback::before{content:'';position:absolute;inset:6px;border:1px solid rgba(227,192,105,.4);border-radius:8px;}
+.fan .cardback{width:96px;height:158px;position:absolute;bottom:0;transform-origin:bottom center;cursor:pointer;transition:transform .15s;}
+.fan .cardback:hover{filter:brightness(1.15);}
+/* 🔴 코코 조정: 원본 .fan 270px는 회전+translateY로 실제 시각 하단이 그보다 ~107px 더 내려가 .deal과 겹침(실측 확인) — 겹침 해소용 여백만 늘림, 카드 트랜스폼/디자인 값은 원본 그대로 */
+.deal{margin-top:120px;text-align:center;font:700 14px system-ui;color:var(--gold);}
+.shuffle{display:flex;gap:6px;justify-content:center;margin-top:8px;}
+.shuffle i{width:8px;height:8px;border-radius:2px;background:var(--gold);opacity:.5;transform:rotate(45deg);display:inline-block;}
+
+/* 카드 스포(큰 카드) */
+.reveal{display:flex;flex-direction:column;align-items:center;margin-top:10px;}
+.cardpos{margin-top:16px;align-self:flex-start;display:inline-flex;align-items:center;gap:7px;background:linear-gradient(180deg,#2a52b5,#12224a);border:1px solid var(--line);color:var(--gold);font:800 15px 'SUIT Variable';padding:7px 15px;border-radius:999px;}
+.bigcard{width:196px;height:336px;border-radius:14px;overflow:hidden;border:3px solid #d4af37;box-shadow:0 14px 40px rgba(0,0,0,.6),0 0 30px rgba(212,175,55,.25);transform:rotate(-2deg);background-size:cover;background-position:right center;background-color:#12213f;}
+.cardname{margin-top:12px;font:800 21px 'Nanum Myeongjo',serif;color:var(--ink);text-align:center;}
+
+/* 인트로 A안 텍스트 박스(딥 글래스 캡슐) */
+.introcard{background:rgba(11,17,36,.62);backdrop-filter:blur(7px);border:1px solid rgba(212,175,55,.3);border-radius:22px;padding:18px 20px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);}
+.ihead{font:800 26px 'Nanum Myeongjo',serif;line-height:1.42;color:#fbf6ea;text-shadow:0 1px 8px rgba(0,0,0,.5);}
+.ihead .g{color:#e3c069;}
+.idesc{font:600 13px system-ui;color:#dfe4f1;margin-top:10px;}
+
+/* 넘기기 네비(좌우 탭 영역, 시각요소 없이 터치존만) */
+.navzone{position:absolute;top:64px;bottom:60px;width:34%;z-index:9;cursor:pointer;}
+.navzone.left{left:0;} .navzone.right{right:0;}
+
+/* ===== PC 인트로(영상 배경, ≥900px 전용) =====
+   출처: consulting/gosam_funnel/intro_pc_turnin.mp4 + txt_overlay.html (디자인봇 확정, gate:gosam_pc_texttiming 7/7) */
+.pcintro{position:relative;width:100vw;height:100vh;overflow:hidden;background:#05080f;color:var(--ink);font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;}
+.pcintro-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;}
+.pcintro .topscrim{position:absolute;top:0;left:0;right:0;height:200px;z-index:2;background:linear-gradient(180deg,rgba(4,8,16,.78),transparent);}
+.pcintro .botscrim{position:absolute;bottom:0;left:0;right:0;height:560px;z-index:2;
+  background:linear-gradient(180deg,transparent,rgba(4,8,16,.35) 42%,rgba(3,6,13,.9) 100%);}
+.pcintro .vign{position:absolute;inset:0;z-index:2;pointer-events:none;background:radial-gradient(120% 90% at 50% 40%,transparent 58%,rgba(3,6,13,.5) 100%);}
+.pcintro .dancheong{position:absolute;top:0;left:0;right:0;height:7px;z-index:6;
+  background:repeating-linear-gradient(90deg,#1c3d7a 0 18px,#e3c069 18px 36px,#1f6f4e 36px 54px,#2a52b5 54px 72px,#c0392b 72px 80px);opacity:.92;}
+.pcintro .topbar{position:absolute;top:26px;left:0;right:0;z-index:7;display:flex;align-items:center;justify-content:center;}
+.pcintro .topbar .bk{position:absolute;left:40px;top:4px;color:var(--ink);font-size:26px;opacity:.85;text-shadow:0 2px 8px rgba(0,0,0,.8);}
+.pcintro .topbar .wm{font:800 30px 'Nanum Myeongjo',serif;letter-spacing:.16em;text-shadow:0 2px 12px rgba(0,0,0,.85);}
+.pcintro .topbar .wm b{color:var(--gold);}
+.pcintro .ui{position:absolute;left:50%;bottom:70px;transform:translate(-50%,44px);z-index:7;width:760px;max-width:86vw;text-align:center;
+  opacity:0;transition:opacity .6s ease,transform .6s ease;}
+.pcintro .ui.in{opacity:1;transform:translate(-50%,0);}
+.pcintro .chip{display:inline-block;background:rgba(9,14,28,.6);border:1px solid rgba(227,192,105,.5);color:var(--ink);
+  font:600 16px 'Malgun Gothic';padding:11px 22px;border-radius:999px;backdrop-filter:blur(4px);margin-bottom:18px;
+  text-shadow:0 1px 6px rgba(0,0,0,.7);}
+.pcintro .head{font:800 46px 'Nanum Myeongjo',serif;line-height:1.34;color:#fbf6ea;text-shadow:0 2px 18px rgba(0,0,0,.85),0 0 40px rgba(4,8,16,.6);}
+.pcintro .head .g{color:var(--gold);}
+.pcintro .desc{font:600 17px 'Malgun Gothic';color:#e6ebf6;margin-top:16px;text-shadow:0 2px 12px rgba(0,0,0,.9);}
+.pcintro .cta{display:inline-block;margin-top:28px;min-width:360px;font:800 21px 'Malgun Gothic';color:#f7f2e0;padding:19px 44px;border-radius:16px;
+  background:linear-gradient(180deg,var(--cobalt,#2a52b5),var(--navy,#17306b));box-shadow:0 0 0 2px #d4af37,0 10px 30px rgba(0,0,0,.5),inset 0 1px 0 rgba(212,175,55,.5);
+  border:none;cursor:pointer;}
+.pcintro .cta small{display:block;font:600 13px 'Malgun Gothic';color:#cdd6ec;margin-top:5px;letter-spacing:0;}
+.pcintro .footnote{margin-top:20px;font:600 14px 'Malgun Gothic';color:#c3cde6;letter-spacing:.06em;text-shadow:0 1px 8px rgba(0,0,0,.85);}
+
+/* ===== PC 와이드 네이티브 화면(선택·입력·스포·페이월, ≥900px 전용) =====
+   출처: consulting/gosam_funnel/funnel_pc_screens.html (디자인봇 확정, gate:gosam_pc_screens/gosam_rich_tiles/gosam_tile_textpos 전부 7/7)
+   모바일 .ph 내부 클래스(.cta/.tile/.reading/.rd 등)와 이름 겹치는 게 많아 전부 .pcwide 스코프 하위 선택자로 격리. */
+.pcwide{position:relative;width:100vw;height:100vh;overflow:hidden;background:#05080f;color:var(--ink);font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;}
+.pcwide .bg{position:absolute;inset:0;background-size:cover;background-position:center 42%;}
+.pcwide .tint{position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,8,16,.72),rgba(4,8,16,.5) 40%,rgba(3,6,13,.86));}
+.pcwide .tint2{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 42%,transparent 55%,rgba(3,6,13,.55));}
+.pcwide .dancheong{position:absolute;top:0;left:0;right:0;height:7px;z-index:6;background:repeating-linear-gradient(90deg,#1c3d7a 0 18px,#e3c069 18px 36px,#1f6f4e 36px 54px,#2a52b5 54px 72px,#c0392b 72px 80px);opacity:.9;}
+.pcwide .topbar{position:absolute;top:26px;left:0;right:0;z-index:7;text-align:center;}
+.pcwide .topbar .bk{position:absolute;left:44px;top:2px;font-size:26px;color:var(--ink);opacity:.85;text-shadow:0 1px 6px #000;background:none;border:none;cursor:pointer;}
+.pcwide .topbar .wm{font:800 30px 'Nanum Myeongjo',serif;letter-spacing:.16em;text-shadow:0 2px 12px #000;} .pcwide .topbar .wm b{color:var(--gold);}
+.pcwide .wrap{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:120px 90px 80px;}
+.pcwide .ey{font:800 15px 'Malgun Gothic';color:var(--gold);letter-spacing:.2em;margin-bottom:14px;text-shadow:0 1px 8px #000;}
+.pcwide .htitle{font:800 44px 'Nanum Myeongjo',serif;letter-spacing:0;line-height:1.34;margin:0;text-align:center;text-shadow:0 2px 16px rgba(0,0,0,.85);} .pcwide .htitle .r{color:var(--cobalt,#2a52b5);} .pcwide .htitle .g{color:var(--gold);}
+.pcwide .hdesc{font:600 17px 'Malgun Gothic';color:var(--muted);margin-top:14px;text-align:center;text-shadow:0 1px 10px #000;}
+
+/* 선택 타일 (가로 3열, 이미지 위+텍스트 아래 footer) */
+.pcwide .tiles{display:flex;gap:30px;margin-top:44px;}
+.pcwide .tile{width:440px;height:auto;margin-bottom:0;border-radius:20px;overflow:hidden;border:1.5px solid rgba(212,175,55,.4);box-shadow:0 16px 40px rgba(0,0,0,.55);background:rgba(10,16,34,.82);cursor:pointer;text-align:left;padding:0;color:inherit;}
+.pcwide .tile .thumb{height:250px;background-size:cover;background-position:center;background-color:#0b1428;border-bottom:1px solid rgba(212,175,55,.28);}
+.pcwide .tile .foot{position:relative;padding:18px 24px 22px;min-height:104px;}
+.pcwide .tile .foot h3{font:800 25px 'Nanum Myeongjo',serif;color:#f7ecd6;}
+.pcwide .tile .foot p{font:600 14px 'Malgun Gothic';color:#b7c0d6;margin-top:8px;line-height:1.5;padding-right:70px;}
+.pcwide .tile .foot .go{position:absolute;right:22px;bottom:20px;font:800 14px 'Malgun Gothic';color:var(--gold);white-space:nowrap;}
+
+/* 입력 폼 */
+.pcwide .panel{width:640px;background:rgba(11,17,36,.62);backdrop-filter:blur(8px);border:1px solid rgba(212,175,55,.32);border-radius:22px;padding:38px 40px;box-shadow:0 20px 50px rgba(0,0,0,.5);}
+.pcwide .field{margin-bottom:22px;} .pcwide .field label{display:block;font:700 15px 'Malgun Gothic';color:var(--gold2);margin-bottom:9px;}
+.pcwide .inp{width:100%;background:rgba(9,14,28,.6);border:1px solid rgba(212,175,55,.3);border-radius:12px;padding:15px 16px;font:600 17px 'Malgun Gothic';color:var(--ink);}
+.pcwide .inp::placeholder{color:var(--muted);}
+.pcwide .row2{display:flex;gap:12px;} .pcwide .row2>*{flex:1;}
+.pcwide .cta{display:block;width:100%;text-align:center;margin-top:8px;font:800 20px 'Malgun Gothic';color:#f7f2e0;padding:18px;border-radius:14px;background:linear-gradient(180deg,var(--cobalt,#2a52b5),var(--navy,#17306b));box-shadow:0 0 0 2px #d4af37,0 8px 24px rgba(0,0,0,.45);border:none;cursor:pointer;}
+.pcwide .cta:disabled{opacity:.5;cursor:not-allowed;}
+.pcwide .cta small{display:block;font:600 13px 'Malgun Gothic';color:#cdd6ec;margin-top:4px;}
+
+/* 스포 */
+/* 🔴 코코 수정: .fan은 자식이 전부 position:absolute라 고유 너비가 0 — 모바일에선 .content의 기본
+   align-items:stretch로 가려졌지만, .pcwide .wrap은 align-items:center라 그대로 붕괴(playwright 클릭 불가로 실측 발견). */
+.pcwide .fan{width:400px;}
+.pcwide .spo{display:flex;gap:40px;align-items:stretch;width:1180px;max-width:92vw;}
+.pcwide .spobadge{align-self:flex-start;display:inline-flex;gap:8px;background:linear-gradient(180deg,var(--cobalt,#2a52b5),#12224a);border:1px solid rgba(212,175,55,.4);color:var(--gold);font:800 18px 'Malgun Gothic';padding:10px 20px;border-radius:999px;margin-bottom:18px;}
+.pcwide .graphbox{flex:1;background:rgba(11,17,36,.55);border:1px solid rgba(212,175,55,.3);border-radius:18px;padding:24px;}
+.pcwide .spoline{font:800 30px 'Nanum Myeongjo',serif;line-height:1.4;margin-top:16px;} .pcwide .spoline .hl{color:var(--gold);}
+.pcwide .reading{flex:1;margin-top:0;background:rgba(11,17,36,.6);border:1px solid rgba(212,175,55,.3);border-radius:18px;padding:26px 28px;font:600 19px/1.9 'Malgun Gothic';color:var(--ink);box-shadow:none;}
+.pcwide .reading b{color:var(--gold);} .pcwide .rd{display:inline-block;color:transparent;background:linear-gradient(90deg,var(--cobalt,#2a52b5),#12224a);border-radius:5px;padding:0 4px;filter:blur(2px);font-weight:800;}
+.pcwide .lock{margin-top:16px;font:700 15px 'Malgun Gothic';color:var(--gold);}
+.pcwide .spoyrs{display:flex;justify-content:space-between;font:600 13px 'Malgun Gothic';color:var(--muted);margin-top:6px;}
+
+/* PC 스포 넘기기 UI — 하단 라벨세그먼트바+엣지 화살버튼 (디자인봇 gate:spo_nav 목업 이식, 2026-07-20, 점 인디케이터 폐기) */
+.pcwide .edge{position:absolute;top:50%;transform:translateY(-50%);z-index:8;width:64px;height:64px;border-radius:50%;
+  display:grid;place-items:center;cursor:pointer;padding:0;
+  background:rgba(11,17,36,.62);border:1.5px solid rgba(212,175,55,.5);
+  box-shadow:0 8px 24px rgba(0,0,0,.5);color:var(--gold);font-size:30px;line-height:1;backdrop-filter:blur(4px);transition:.2s;}
+.pcwide .edge:hover{box-shadow:0 8px 30px rgba(0,0,0,.6),0 0 20px rgba(227,192,105,.5);border-color:var(--gold);}
+.pcwide .edge.L{left:50px;} .pcwide .edge.R{right:50px;}
+.pcwide .edge.dim{opacity:.28;pointer-events:none;}
+.pcwide .sponavbar{position:relative;display:flex;align-items:center;justify-content:center;gap:18px;margin-top:26px;width:1180px;max-width:92vw;}
+.pcwide .sponavbtn{display:inline-flex;align-items:center;gap:8px;font:800 15px 'Malgun Gothic';padding:13px 20px;border-radius:12px;cursor:pointer;white-space:nowrap;border:none;}
+.pcwide .sponavbtn.prev{color:var(--muted);background:rgba(11,17,36,.55);border:1px solid rgba(169,180,207,.3);}
+.pcwide .sponavbtn.prev:disabled{opacity:.35;cursor:not-allowed;}
+.pcwide .sponavbtn.next{color:#f7f2e0;background:linear-gradient(180deg,var(--cobalt,#2a52b5),var(--navy,#17306b));box-shadow:0 0 0 2px #d4af37,0 6px 20px rgba(0,0,0,.45);}
+.pcwide .sposegs{display:flex;gap:8px;background:rgba(6,11,26,.5);border:1px solid rgba(212,175,55,.22);border-radius:999px;padding:7px 10px;backdrop-filter:blur(4px);}
+.pcwide .sposeg{display:inline-flex;align-items:center;gap:6px;font:700 14px 'Malgun Gothic';color:var(--muted);padding:8px 14px;border-radius:999px;cursor:pointer;transition:.2s;border:none;background:none;}
+.pcwide .sposeg.active{color:#0a1024;background:linear-gradient(180deg,var(--gold),#c9a24b);font-weight:800;box-shadow:0 2px 10px rgba(227,192,105,.4);}
+.pcwide .sposeg.done{color:#c9a24b;}
+
+/* 페이월 */
+.pcwide .locked{width:720px;border-radius:18px;overflow:hidden;border:1px solid rgba(212,175,55,.3);position:relative;margin-bottom:24px;}
+.pcwide .locked .blur{filter:blur(9px);padding:26px;background:rgba(11,17,36,.6);font:600 20px/2 'Malgun Gothic';color:var(--ink);}
+.pcwide .locked .ov{position:absolute;inset:0;display:grid;place-items:center;font-size:52px;color:var(--gold);background:rgba(6,11,26,.35);}
+.pcwide .pricebox{width:520px;background:rgba(11,17,36,.62);border:1px solid rgba(212,175,55,.35);border-radius:18px;padding:26px;text-align:center;margin-bottom:22px;}
+.pcwide .pricebox .p{font:800 40px 'Nanum Myeongjo',serif;color:var(--gold);} .pcwide .pricebox .pn{font:600 15px 'Malgun Gothic';color:var(--muted);margin-top:6px;}
+.pcwide .pcback{margin-top:18px;font:600 14px 'Malgun Gothic';color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline;}
+
+/* ===== 타로 스프레드 시스템(데이터구동, 모바일+PC) =====
+   출처: consulting/gosam_funnel/tarot_spread_conti.html · tarot_mobile_conti.html · funnel_tarot_pc_reveal.html
+   (디자인봇 확정, gate:gosam_tarot_spread_conti/gosam_tarot_mobile_conti 7/7). 하드코딩 스프레드 없음 — /api/spreads·/api/tarot/draw 데이터로 렌더. */
+
+/* 스프레드 선택(모바일+PC 공용, .content 또는 .wrap 안에 들어감) */
+.spreadgrp{width:100%;margin-top:18px;}
+.spreadgrp h4{font:800 12px system-ui;color:var(--gold,#e3c069);letter-spacing:.14em;margin-bottom:10px;opacity:.85;}
+.spreadgrid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px;}
+.spreadcard{flex:1 1 auto;min-width:150px;text-align:left;background:rgba(11,17,36,.62);border:1px solid rgba(212,175,55,.32);border-radius:14px;padding:14px 16px;color:inherit;cursor:pointer;}
+.spreadcard .stitle{font:800 15px 'SUIT Variable','Malgun Gothic';color:#f7ecd6;}
+.spreadcard .sn{display:inline-block;margin-left:6px;font:700 11px system-ui;color:var(--gold,#e3c069);opacity:.8;}
+.spreadcard .sdesc{margin-top:5px;font:600 12px system-ui;color:#a9b4cf;line-height:1.4;}
+
+/* 카드뽑기 부채꼴 로딩중 뱃지 */
+.drawloading{margin-top:14px;text-align:center;font:600 13px system-ui;color:var(--gold,#e3c069);opacity:.9;}
+
+/* 모바일 미니맵(전체 배치 축소 + 현재자리 강조) */
+.minimap{position:relative;width:100%;max-width:220px;margin:0 auto 18px;aspect-ratio:1;background:rgba(11,17,36,.5);border:1px solid rgba(212,175,55,.25);border-radius:14px;}
+.minimap .mnode{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:6px;background:rgba(212,175,55,.28);border:1px solid rgba(212,175,55,.4);display:grid;place-items:center;font:700 10px system-ui;color:#dfe4f1;transition:all .25s;}
+.minimap .mnode.done{background:rgba(42,82,181,.6);}
+.minimap .mnode.on{background:var(--gold,#e3c069);color:#241a03;width:26px;height:26px;margin:-13px 0 0 -13px;box-shadow:0 0 12px rgba(227,192,105,.6);z-index:2;}
+
+/* 모바일 순차 리빌 — 기존 .bigcard/.cardpos/.reading/.rd/.lockline 재사용, 카드수만 동적 */
+.mobrevealhead{text-align:center;font:700 13px system-ui;color:var(--muted);margin-bottom:6px;}
+
+/* 3장 스프레드 모바일 = 세로 컬럼(카드 3장 한번에) */
+.stackcol{display:flex;flex-direction:column;gap:12px;}
+.stackcol .scard{display:flex;gap:14px;align-items:center;background:rgba(11,17,36,.6);border:1px solid rgba(212,175,55,.28);border-radius:14px;padding:12px;}
+.stackcol .scard img{width:64px;height:104px;object-fit:cover;border-radius:8px;border:1.5px solid var(--gold,#e3c069);}
+.stackcol .scard .sinfo{flex:1;}
+.stackcol .scard .sinfo h4{font:800 14px 'Nanum Myeongjo',serif;color:#f7ecd6;}
+.stackcol .scard .sinfo p{font:600 12px system-ui;color:#a9b4cf;margin-top:3px;}
+
+/* PC 리빌 — 좌 배열 그대로 펼침 + 우 리딩 패널 */
+.revealwide{display:flex;gap:48px;align-items:flex-start;width:1280px;max-width:92vw;}
+/* 🔴 코코 수정: justify/align-items는 셀 "안"에서만 카드를 가운데 놓음 — 그리드 "블록 전체"를 flex:1 영역
+   가운데 두려면 justify-content/align-content가 따로 필요함(실측: 안 넣으면 좌상단에 쏠려 붙음). */
+.revealgrid{position:relative;flex:1;display:grid;justify-items:center;align-items:center;justify-content:center;align-content:center;gap:22px;}
+.revealgrid .gcard{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform .2s,opacity .2s;}
+.revealgrid .gcard.cross{transform:rotate(90deg);}
+.revealgrid .gcard.on img{box-shadow:0 0 0 3px var(--gold,#e3c069),0 0 24px rgba(227,192,105,.5);}
+.revealgrid .gcard.dim{opacity:.5;}
+.revealgrid .gcard img{width:104px;height:168px;object-fit:cover;border-radius:8px;border:1.5px solid rgba(212,175,55,.4);background:linear-gradient(150deg,#17306b,#0c1730 55%,#2a52b5);}
+.revealgrid .gcard .glabel{font:700 11px 'Malgun Gothic';color:#a9b4cf;text-align:center;white-space:nowrap;}
+.revealgrid .gcard.cross .glabel{transform:rotate(-90deg);}
+.panel2{width:420px;background:rgba(11,17,36,.68);border:1px solid rgba(212,175,55,.32);border-radius:20px;padding:28px;box-shadow:0 20px 50px rgba(0,0,0,.5);}
+.panel2 .pcardpos{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg,var(--cobalt,#2a52b5),#12224a);border:1px solid rgba(212,175,55,.4);color:var(--gold,#e3c069);font:800 15px 'Malgun Gothic';padding:8px 18px;border-radius:999px;}
+.panel2 .pname{margin-top:16px;font:800 24px 'Nanum Myeongjo',serif;color:#f4ead2;}
+.panel2 .preading{margin-top:14px;font:600 16px/1.85 'Malgun Gothic';color:#dfe4f1;}
+.panel2 .plock{margin-top:14px;font:700 13px 'Malgun Gothic';color:var(--gold,#e3c069);}
+.panel2 .pnav,.pcwide .navbtns{display:flex;gap:10px;margin-top:24px;}
+.panel2 .pnav button,.pcwide .navbtns button{flex:1;padding:13px;border-radius:12px;font:700 14px 'Malgun Gothic';cursor:pointer;background:rgba(9,14,28,.6);border:1px solid rgba(212,175,55,.3);color:#dfe4f1;}
+.panel2 .pnav button:disabled,.pcwide .navbtns button:disabled{opacity:.35;cursor:not-allowed;}
+.panel2 .pnav button.next,.pcwide .navbtns button.next{background:linear-gradient(180deg,var(--cobalt,#2a52b5),var(--navy,#17306b));border:none;color:#f7f2e0;}
+.pcwide .navbtns{width:1180px;max-width:92vw;margin-left:auto;margin-right:auto;}
+.pcwide .navhint{text-align:center;font:600 12px 'Malgun Gothic';color:var(--muted,#a9b4cf);margin-top:10px;opacity:.8;}
