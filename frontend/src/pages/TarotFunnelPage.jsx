@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import '../funnel.css'
 import { API, API_BASE } from '../api'
 import TheaterFrame from '../components/TheaterFrame'
+import ShuffleFan from '../components/ShuffleFan'
 import useIsDesktop from '../hooks/useIsDesktop'
 import imgHallWide from '../assets/funnel/hall_wide_1.jpg'
 
@@ -135,6 +136,42 @@ export default function TarotFunnelPage({ onBack: onExit }) {
   const nextReveal = () => { if (revealIdx < nCards - 1) setRevealIdx(i => i + 1); else setStage('paywall') }
   const prevReveal = () => setRevealIdx(i => Math.max(0, i - 1))
 
+  // 모바일 리빌화면 swipe 제스처 + 최초 1회 코치마크 — SajuFunnelPage와 동일 패턴(spo* 클래스 재사용)
+  const [dragX, setDragX] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const touchStartX = useRef(0)
+  const [coachSeen, setCoachSeen] = useState(() => {
+    try { return localStorage.getItem('gosam_tarot_swipe_coach_seen') === '1' } catch { return true }
+  })
+  const chipbarRef = useRef(null)
+
+  useEffect(() => {
+    if (stage !== 'reveal' || nCards === 3 || revealIdx !== 0 || coachSeen) return
+    const t = setTimeout(() => {
+      setCoachSeen(true)
+      try { localStorage.setItem('gosam_tarot_swipe_coach_seen', '1') } catch { /* noop */ }
+    }, 1500)
+    return () => clearTimeout(t)
+  }, [stage, nCards, revealIdx, coachSeen])
+
+  useEffect(() => {
+    if (!chipbarRef.current) return
+    const active = chipbarRef.current.querySelector('.spochip.active')
+    if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }, [revealIdx])
+
+  const onRevealTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; setDragging(true) }
+  const onRevealTouchMove = (e) => {
+    const dx = e.touches[0].clientX - touchStartX.current
+    setDragX(Math.max(-120, Math.min(120, dx)))
+  }
+  const onRevealTouchEnd = () => {
+    if (dragX <= -60) nextReveal()
+    else if (dragX >= 60 && revealIdx > 0) prevReveal()
+    setDragging(false)
+    setDragX(0)
+  }
+
   // ── 모바일(기본) 렌더 ──
   const mobileScreen = () => (
     <div className="funnel-root">
@@ -181,11 +218,7 @@ export default function TarotFunnelPage({ onBack: onExit }) {
               <div className="content">
                 <span className="ey" style={{ textAlign: 'center', alignSelf: 'center' }}>패가 섞였습니다</span>
                 <div className="htitle" style={{ textAlign: 'center' }}>마음을 비우시고,<br /><span className="g">한 장</span>을 고르십시오</div>
-                <div className="fan" onClick={doDraw} style={{ cursor: 'pointer' }}>
-                  {Array.from({ length: FAN_N }, (_, i) => (
-                    <div key={i} className="cardback" style={{ transform: fanTransform(i) }} />
-                  ))}
-                </div>
+                <ShuffleFan n={FAN_N} fanTransform={fanTransform} onDraw={doDraw} drawing={drawing} />
                 <div className="deal">{drawing ? '패를 살피는 중…' : '손이 멈추는 그 카드가, 당신의 패입니다'}</div>
                 <div className="shuffle">{Array.from({ length: 5 }, (_, i) => <i key={i} />)}</div>
                 {error && <div style={{ color: '#e08080', fontSize: 13, textAlign: 'center', marginTop: 10 }}>{error}</div>}
@@ -224,22 +257,47 @@ export default function TarotFunnelPage({ onBack: onExit }) {
                   <div className="stage" /><div className="texture" /><div className="ambient" />
                   <Top onBack={() => setStage('draw')} />
                   <div className="frameborder" />
+                  {/* 투명 tap존은 보조수단으로 유지, 주 수단은 아래 swipe+칩바+버튼 */}
                   <div className="navzone left" onClick={prevReveal} />
                   <div className="navzone right" onClick={nextReveal} />
                   <div className="content">
                     <Minimap cards={drawResult.cards} gridCols={drawResult.grid_cols} gridRows={drawResult.grid_rows} activeIdx={revealIdx} />
-                    <div className="reveal">
-                      <span className="cardpos" style={{ alignSelf: 'center' }}>🎴 {c.position_num}. {c.position_name}</span>
-                      <div className="bigcard" style={{ backgroundImage: `url('${cardImgUrl(c.image)}')`, marginTop: 14 }} />
-                      <div className="cardname">{c.card_name}{c.reversed ? ' (역방향)' : ''}</div>
+                    <div
+                      className={`spocard${dragging ? ' dragging' : ''}`}
+                      style={{ transform: `translateX(${dragX}px) rotate(${dragX / 60}deg)` }}
+                      onTouchStart={onRevealTouchStart}
+                      onTouchMove={onRevealTouchMove}
+                      onTouchEnd={onRevealTouchEnd}
+                    >
+                      <div className="reveal">
+                        <span className="cardpos" style={{ alignSelf: 'center' }}>🎴 {c.position_num}. {c.position_name}</span>
+                        <div className="bigcard" style={{ backgroundImage: `url('${cardImgUrl(c.image)}')`, marginTop: 14 }} />
+                        <div className="cardname">{c.card_name}{c.reversed ? ' (역방향)' : ''}</div>
+                      </div>
+                      <div className="reading">{head} <Rd>{tail}</Rd></div>
+                      <div className="lockline">🔒 ▓ 카드의 전체 해석과 종합 결론은 신당 안에서 다 보여드립니다</div>
+                      {dragX < -8 && revealIdx < nCards - 1 && <div className="nextpeek" />}
                     </div>
-                    <div className="reading">{head} <Rd>{tail}</Rd></div>
-                    <div className="lockline">🔒 ▓ 카드의 전체 해석과 종합 결론은 신당 안에서 다 보여드립니다</div>
-                    <div className="swipe" onClick={nextReveal}>
-                      {revealIdx < nCards - 1 ? '넘기시면 다음 카드를 보여드립니다 →' : '결과 보기 →'}
-                      <div className="dots">{drawResult.cards.map((_, i) => <i key={i} className={i === revealIdx ? 'on' : ''} />)}</div>
+                    <div className="spochipbar" ref={chipbarRef}>
+                      {drawResult.cards.map((card, i) => (
+                        <button key={i} className={`spochip${i === revealIdx ? ' active' : i < revealIdx ? ' done' : ''}`} onClick={() => setRevealIdx(i)}>
+                          {card.position_num}. {card.position_name}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="spomnav">
+                      <button className="spomprev" disabled={revealIdx === 0} onClick={prevReveal}>‹</button>
+                      <button className="spomnext" onClick={nextReveal}>{revealIdx < nCards - 1 ? '다음 자리 ›' : '결과 보기 ›'}</button>
                     </div>
                   </div>
+                  {revealIdx === 0 && !coachSeen && (
+                    <div className="spocoach">
+                      <div className="box">
+                        <div className="finger">👆</div>
+                        <div className="txt"><b>밀어서</b> 다음 카드</div>
+                      </div>
+                    </div>
+                  )}
                 </>
               )
             })()
@@ -306,11 +364,7 @@ export default function TarotFunnelPage({ onBack: onExit }) {
           <PcWideTarot onBack={() => setStage('question')} center>
             <span className="ey" style={{ textAlign: 'center' }}>패가 섞였습니다</span>
             <div className="htitle" style={{ textAlign: 'center', marginBottom: 10 }}>마음을 비우시고, <span className="g">한 장</span>을 고르십시오</div>
-            <div className="fan" onClick={doDraw} style={{ cursor: 'pointer' }}>
-              {Array.from({ length: FAN_N }, (_, i) => (
-                <div key={i} className="cardback" style={{ transform: fanTransform(i) }} />
-              ))}
-            </div>
+            <ShuffleFan n={FAN_N} fanTransform={fanTransform} onDraw={doDraw} drawing={drawing} />
             <div className="deal">{drawing ? '패를 살피는 중…' : '손이 멈추는 그 카드가, 당신의 패입니다'}</div>
             {error && <div style={{ color: '#e08080', fontSize: 13, textAlign: 'center', marginTop: 10 }}>{error}</div>}
           </PcWideTarot>
