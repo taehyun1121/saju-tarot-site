@@ -17,6 +17,8 @@ from google.genai import types
 
 from saju import calc_pillars, calc_daeun, build_reading, build_compatibility_reading, CHEONGAN, JIJI, ILGAN_TRAITS
 from tarot import SPREADS, draw_cards, finalize_cards, get_meaning, get_saju_meaning, get_overall_summary
+from saju_rule_engine import Pillars as _EnginePillars
+from saju_fortune_curve import score_curve
 
 # ── Gemini API 클라이언트 ────────────────────────────────────
 _gemini_client = None
@@ -410,9 +412,13 @@ app = FastAPI(title="사주타로 API")
 # 🔒 CORS: 기본 전체(*) 제거 → 프론트 origin 화이트리스트. 필요 시 CORS_ORIGINS 환경변수로 오버라이드(콤마구분).
 _CORS_DEFAULT = "https://taehyun1121.github.io,https://gosamtarot.com,https://www.gosamtarot.com,http://localhost:5173"
 _CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", _CORS_DEFAULT).split(",") if o.strip()]
+# Netlify 프리뷰(gosamtarot-funnel-preview 사이트)만 정규식으로 허용 — draft 배포마다 해시 서브도메인이 바뀌어서
+# 정확매칭 리스트로는 못 잡음. 이 사이트 하나로 스코프 한정(*.netlify.app 전체 허용 아님).
+_CORS_PREVIEW_REGEX = r"^https://([a-z0-9]+--)?gosamtarot-funnel-preview\.netlify\.app$"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_CORS_ORIGINS,
+    allow_origin_regex=_CORS_PREVIEW_REGEX,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
@@ -454,6 +460,26 @@ def calculate_saju(req: SajuRequest, request: Request):
     ai = generate_ai_saju_reading(pillars, dp[0], daeun, seun, reading_list, req.gender)
     decades = generate_decade_reading(req.year, pillars, dp[0], daeun, req.gender)
 
+    # 운세곡선 엔진(saju_fortune_curve) — AI 미사용, 결정론적 명리 룰. 4대운 피크(대박·조심·연애·결혼)
+    # 실패해도 전체 API는 죽지 않게 격리(엔진은 부가 기능, saju 핵심 결과에 영향 없음).
+    fortune = None
+    try:
+        engine_pillars = _EnginePillars(
+            (yp[0], yp[1]), (mp[0], mp[1]), (dp[0], dp[1]),
+            (hp[0], hp[1]) if hp else None,
+        )
+        daewoon_su = daeun[0]["start"] if daeun else None
+        result = score_curve(engine_pillars, req.gender, req.year, daewoon_su=daewoon_su, age_range=(3, 83))
+        fortune = {
+            "peaks": result["peaks"],
+            "flags": result["flags"],
+            "meta": {"왕쇠": result["meta"]["왕쇠"].get("verdict"), "용신그룹": result["meta"]["용신그룹"]},
+            # 그래프용 5년 간격 샘플(81개 전체는 과함 — 화면 그래프는 몇 개 점이면 충분)
+            "curve_sample": [c for c in result["curve"] if c["age"] % 5 == 0 or c["age"] == req.year - req.year],
+        }
+    except Exception as e:
+        print(f"[fortune curve error] {e}")
+
     return {
         "pillars": pillars,
         "ilgan": dp[0],
@@ -464,6 +490,7 @@ def calculate_saju(req: SajuRequest, request: Request):
         "ai_overall": ai.get("overall", ""),
         "decade_readings": decades,
         "ai_available": bool(ai),
+        "fortune": fortune,
     }
 
 # ── 궁합 ───────────────────────────────────────────────────
