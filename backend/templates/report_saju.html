@@ -47,6 +47,8 @@ h1,h2,h3{margin:0;}
 .shead .n b{color:var(--gold);}
 .shead .en{margin-left:auto;font-weight:400;font-size:8.5pt;letter-spacing:.24em;color:#6f7a99;text-transform:uppercase;}
 .lead{font-weight:400;font-size:11pt;color:#d8dcea;margin-bottom:5mm;}
+.termdef{background:rgba(227,192,105,.08);border:1px solid rgba(212,175,55,.28);border-radius:2.5mm;padding:3mm 4mm;margin-bottom:5mm;font-size:9.5pt;line-height:1.55;color:#e7ecf8;}
+.termdef b{color:var(--gold);margin-right:1.5mm;}
 
 /* ===== 4기둥 ===== */
 .pillars{display:flex;gap:4mm;}
@@ -314,6 +316,7 @@ h1,h2,h3{margin:0;}
 
 {% if sipseong %}
 <section class="section"><div class="shead"><span class="seal">❖</span><span class="n">십성 <b>분포</b></span><span class="en">Ten Gods</span></div>
+<div class="termdef"><b>십성이란</b> 타고난 기운이 재물·직장·인연 중 어디로 쓰이는지 보여주는 열 가지 분류입니다.</div>
 <div class="lead">타고난 기운이 어떤 역할로 쓰이는지 — 열 가지 십성의 많고 적음입니다.</div>
 <div class="sip-grid">{% for s in sipseong %}<div class="card-base sip {% if s.count==0 %}zero{% endif %}"><div class="nm">{{s.name}}</div><div class="ct">{{s.count}}</div><div class="mn">{{ s.short_meaning.split(' — ')[0] }}</div></div>{% endfor %}</div></section>
 {% endif %}
@@ -333,21 +336,25 @@ h1,h2,h3{margin:0;}
 
 {% if stages %}
 <section class="section"><div class="shead"><span class="seal">❖</span><span class="n">12운성 <b>· 기둥별</b></span><span class="en">Twelve Stages</span></div>
+<div class="termdef"><b>12운성이란</b> 각 기둥이 인생의 어느 단계(태어남~전성기~쇠퇴)에 와 있는지 보여주는 눈금입니다.</div>
 <div class="pillar4">{% for p in stages %}<div class="card-base p4"><div class="pl">{{p.pillar}}</div><div class="vl"><b>{{ p.value.split('(')[0] }}</b>{{ '('+p.value.split('(')[1] if '(' in p.value else '' }}</div></div>{% endfor %}</div></section>
 {% endif %}
 
 {% if sinsal %}
 <section class="section"><div class="shead"><span class="seal">❖</span><span class="n">12신살 <b>· 기둥별</b></span><span class="en">Twelve Sinsal</span></div>
+<div class="termdef"><b>12신살이란</b> 타고난 기둥마다 붙는, 이동·인기·경쟁 같은 특수한 기운의 이름표입니다.</div>
 <div class="pillar4">{% for p in sinsal %}<div class="card-base p4"><div class="pl">{{p.pillar}}</div><div class="vl"><b>{{ p.value.split('(')[0] }}</b>{{ '('+p.value.split('(')[1] if '(' in p.value else '' }}</div></div>{% endfor %}</div></section>
 {% endif %}
 
 {% if gyeok %}
 <section class="section"><div class="shead"><span class="seal">❖</span><span class="n">격국 <b>상세</b></span><span class="en">Structure</span></div>
+<div class="termdef"><b>격국이란</b> 사주 여덟 글자 전체를 관통하는, '이 사람만의 인생 유형'을 정하는 큰 틀입니다.</div>
 <div class="card-base gyeok-box"><span class="gn">{{gyeok.name}}</span><div class="gb">{{gyeok.body}}</div></div></section>
 {% endif %}
 
 {% if tags %}
 <section class="section"><div class="shead"><span class="seal">❖</span><span class="n">형충회합 · <b>귀인/흉신</b></span><span class="en">Relations</span></div>
+<div class="termdef"><b>형충회합·귀인흉신이란</b> 기둥끼리 부딪히는지 잘 맞는지, 특별히 좋거나 조심할 기운까지 짚어보는 항목입니다.</div>
 <div class="lead">기둥 사이의 작용과, 함께 든 길신·흉신입니다.</div>
 <div class="tags">{% for t in tags %}<span class="tag {% if t.type=='길신' %}gil{% else %}hyung{% endif %}">{{t.type}} · {{t.pair_or_name}}{% if t.note %}<small>{{t.note}}</small>{% endif %}</span>{% endfor %}</div></section>
 {% endif %}
