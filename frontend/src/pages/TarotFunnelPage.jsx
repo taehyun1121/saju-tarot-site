@@ -321,7 +321,7 @@ export default function TarotFunnelPage({ onBack: onExit }) {
                 <button className="cta" onClick={() => setOrderOpen(true)}>전체 카드 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
                 <button className="subline" style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setStage('select')}>처음으로 돌아가기</button>
               </div>
-              <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="tarot_spread" amount={7900} productName={`${drawResult.spread_name} 전체 풀이`} />
+              <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="tarot_spread" amount={7900} productName={`${drawResult.spread_name} 전체 풀이`} readingData={drawResult} />
             </>
           )}
         </div>
@@ -426,7 +426,7 @@ export default function TarotFunnelPage({ onBack: onExit }) {
             <div className="pricebox"><div className="p">₩ 7,900</div><div className="pn">{nCards}장 스프레드 전체 뜻 + 질문 종합 풀이 · 완성 PDF 배달</div></div>
             <button className="cta serif" style={{ width: 520 }} onClick={() => setOrderOpen(true)}>전체 카드 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
             <button className="pcback" onClick={() => setStage('select')}>처음으로 돌아가기</button>
-            <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="tarot_spread" amount={7900} productName={`${drawResult.spread_name} 전체 풀이`} />
+            <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="tarot_spread" amount={7900} productName={`${drawResult.spread_name} 전체 풀이`} readingData={drawResult} />
           </PcWideTarot>
         </div>
       )

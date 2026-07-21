@@ -5,7 +5,7 @@ import { API } from '../api'
 // 디자인: 디자인봇 gate:payment_modal 목업(payment_modal.html/_mobile.html) 그대로 이식(.paymodal 스코프).
 // 흐름: 입금자명/연락처 입력 → 주문생성(POST /api/orders) → 계좌정보+매칭코드 안내(입금자명 최상위 강조) →
 //   "입금했어요" 클릭(POST /api/orders/{id}/claim) → 대기 중이면 5초 간격 폴링(GET /api/orders/{id})으로 자동승인 반영.
-export default function OrderModal({ open, onClose, productKey, amount, productName, defaultName = '' }) {
+export default function OrderModal({ open, onClose, productKey, amount, productName, defaultName = '', readingData = null }) {
   const [step, setStep] = useState('form') // form | account | polling | paid
   const [name, setName] = useState(defaultName)
   const [phone, setPhone] = useState('')
@@ -38,6 +38,7 @@ export default function OrderModal({ open, onClose, productKey, amount, productN
         body: JSON.stringify({
           product: productKey, buyer_name: name.trim(),
           contact: `${phone.trim()} / ${email.trim()}`,
+          ...(readingData ? { reading_data: readingData } : {}),
         }),
       })
       const data = await res.json()

@@ -340,7 +340,7 @@ export default function SajuFunnelPage({ onSelectTarot }) {
             <button className="cta serif" style={{ width: 520 }} onClick={() => setOrderOpen(true)}>전체 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
             <button className="pcback" onClick={() => go(0)}>처음으로 돌아가기</button>
           </PcWide>
-          <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="saju4" amount={9900} productName="사주 4대운 전체 풀이" defaultName={form.name} />
+          <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="saju4" amount={9900} productName="사주 4대운 전체 풀이" defaultName={form.name} readingData={sajuResult} />
         </div>
       )
     }
@@ -477,7 +477,7 @@ export default function SajuFunnelPage({ onSelectTarot }) {
               <button className="cta" onClick={() => setOrderOpen(true)}>전체 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
               <button className="subline" style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => go(0)}>처음으로 돌아가기</button>
             </div>
-            <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="saju4" amount={9900} productName="사주 4대운 전체 풀이" defaultName={form.name} />
+            <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="saju4" amount={9900} productName="사주 4대운 전체 풀이" defaultName={form.name} readingData={sajuResult} />
           </>
         )}
       </div>
