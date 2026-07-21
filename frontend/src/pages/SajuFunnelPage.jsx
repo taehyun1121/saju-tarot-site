@@ -16,8 +16,9 @@ import imgTileChong from '../assets/funnel/tile_chong.jpg'
 
 // 고삼타로 몰입 퍼널 — 랜딩→선택→입력→스포(대박·조심·연애·결혼)→페이월
 // 출처: consulting/gosam_funnel/funnel_blue.html (디자인봇 확정, gate:gosam_funnel_reskin 7/7) — 블루골드 신당 리스킨(2026-07-19)
-// 🔴 정직한 범위: 입력→백엔드 /api/saju 실연동됨. 4대운 피크(대박/조심/연애/결혼) 전용 엔진(saju_fortune_curve.py)은
-//   아직 백엔드에 안 붙어있어 이 화면들의 그래프·문구는 근사치(대운/세운 reading 기반)로 채움 — 후속 연동 필요.
+// 🔴 정직한 범위: 입력→백엔드 /api/saju 실연동됨. 4대운 피크 전용 엔진(saju_fortune_curve.py)은
+//   '대박운'·'조심할 시기' 카드의 헤드라인연도+그래프만 실데이터 연동 완료(spoSpecs 함수 주석 참고).
+//   '연애운'·'결혼운'은 원 디자인의 페이월 블러 의도와 엔진 데이터 정밀도가 안 맞아 데모 카피 유지(미완, 디자인봇 판단 필요).
 //   결제·PDF 배달은 버튼만 있고 미연동(후속).
 
 const TILES = [
@@ -85,18 +86,51 @@ function Graph({ pts, peakX, color }) {
 
 const Rd = ({ children }) => <span className="rd">{children}</span>
 
-// 4대운 화면 스펙(시안 카피 그대로 — 실데이터 연동 전까지 이 톤 유지, 백엔드 reading 붙으면 텍스트만 교체)
+// 그래프 y좌표 정규화(score 0~100 → svg y 10~108, 높을수록 위)
+const scoreToY = (score) => Math.round(10 + (100 - Math.max(0, Math.min(100, score))) / 100 * 98)
+
+// peak_windows[cat](±2세, 1년간격 5점, saju_fortune_curve.py 실계산값)를 그래프 pts/yrs/peakX로 변환.
+// 미확정이거나 데이터가 없으면 null 반환 → 호출부에서 데모값 폴백.
+function realGraphFrom(window) {
+  if (!window || window.length < 2) return null
+  const n = window.length
+  const step = 336 / (n - 1)
+  const pts = window.map((c, i) => [Math.round(i * step), scoreToY(c.score)])
+  const yrs = window.map((c) => `'${String(c.year).slice(-2)}`)
+  const peakX = pts[Math.floor(n / 2)][0]
+  return { pts, yrs, peakX }
+}
+
+// 4대운 화면 스펙 — 그래프/헤드라인 연도는 실데이터(fortune.peak_windows) 연동됨.
+// 🔴 정직한 범위: '대박운'·'조심할 시기'는 디자인상 원래도 정확 연도를 무료로 보여주는
+//   카드라 실제 계산 연도로 교체함. '연애운'·'결혼운'은 원 디자인이 계절/정확연도를
+//   의도적으로 블러(페이월 유도) 처리해뒀는데, 백엔드 엔진은 월·계절 단위 데이터를 안 주고
+//   (지어내기 금지 원칙) 정확 연도만 주기 때문에 그대로 노출하면 블러 의미가 없어짐 —
+//   그래서 이 두 카드는 시안 데모 카피/그래프를 그대로 유지(디자인봇 판단 필요, 미완).
+//   reading 문단(구체 서사)은 엔진이 안 주는 정보라 전 카드 데모 카피 유지.
 function spoSpecs(sajuResult) {
-  const daeunDir = sajuResult?.daeun?.[0]
+  const windows = sajuResult?.fortune?.peak_windows
+  const peaks = sajuResult?.fortune?.peaks
+  const bigLuck = realGraphFrom(windows?.['대박운'])
+  const bigLuckYear = peaks?.['대박운']?.year
+  const risk = realGraphFrom(windows?.['조심시기'])
+  const riskYear = peaks?.['조심시기']?.year
+
   return [
     {
-      badge: '대박운', ico: '💰', hl: '2026년,', rest: '재물의 문이 크게 열립니다',
-      yrs: ["'24", "'25", "'26", "'27", "'28"], pts: [[0, 92], [84, 74], [168, 20], [252, 52], [336, 40]], peakX: 168, color: '#e0b84a',
+      badge: '대박운', ico: '💰',
+      hl: bigLuckYear ? `${bigLuckYear}년,` : '2026년,', rest: '재물의 문이 크게 열립니다',
+      yrs: bigLuck?.yrs || ["'24", "'25", "'26", "'27", "'28"],
+      pts: bigLuck?.pts || [[0, 92], [84, 74], [168, 20], [252, 52], [336, 40]],
+      peakX: bigLuck?.peakX ?? 168, color: '#e0b84a',
       reading: <>재물의 문이 열리는 시작은 <b>봄</b>입니다. 다만 손에 쥔 그 일이 아니라, <Rd>▓▓▓</Rd>를 통해 들어옵니다. 규모는 <Rd>▓,▓▓▓</Rd>만원 선. 단, <Rd>▓월</Rd>에 들어올 제안 하나만은 반드시 걸러 보셔야 합니다.</>,
     },
     {
-      badge: '조심할 시기', ico: '⚠️', hl: '2025년 늦가을,', rest: '한 번 크게 흔들리십니다',
-      yrs: ["'24", "'25", "'26", "'27", "'28"], pts: [[0, 40], [84, 58], [168, 100], [252, 66], [336, 44]], peakX: 168, color: '#c0392b',
+      badge: '조심할 시기', ico: '⚠️',
+      hl: riskYear ? `${riskYear}년,` : '2025년 늦가을,', rest: '한 번 크게 흔들리십니다',
+      yrs: risk?.yrs || ["'24", "'25", "'26", "'27", "'28"],
+      pts: risk?.pts || [[0, 40], [84, 58], [168, 100], [252, 66], [336, 44]],
+      peakX: risk?.peakX ?? 168, color: '#c0392b',
       reading: <>흔들림의 불씨는 돈이 아니라 <b>사람</b>입니다. 그중에서도 <Rd>▓▓ 관계</Rd>. 고비는 <Rd>▓월 ▓주</Rd>에 몰려 있으니, 그때 <Rd>▓▓▓</Rd>만 삼가시면 큰 손해는 피하십니다.</>,
     },
     {

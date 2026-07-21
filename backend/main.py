@@ -470,12 +470,22 @@ def calculate_saju(req: SajuRequest, request: Request):
         )
         daewoon_su = daeun[0]["start"] if daeun else None
         result = score_curve(engine_pillars, req.gender, req.year, daewoon_su=daewoon_su, age_range=(3, 83))
+        # 카테고리별 피크 주변 창(±3세, 1년 간격) — SajuFunnelPage 스포화면 미니그래프용.
+        # curve_sample(5년 간격)은 전체 개관용이라 특정 피크 근처를 부드러운 곡선으로 못 그림 —
+        # 이미 계산된 result["curve"](81개, 지어내기 아닌 실계산값)에서 슬라이스만 함.
+        def _peak_window(peak, span=2):
+            if not peak or "미확정" in peak:
+                return None
+            age = peak["age"]
+            return [c for c in result["curve"] if age - span <= c["age"] <= age + span]
+
         fortune = {
             "peaks": result["peaks"],
             "flags": result["flags"],
             "meta": {"왕쇠": result["meta"]["왕쇠"].get("verdict"), "용신그룹": result["meta"]["용신그룹"]},
             # 그래프용 5년 간격 샘플(81개 전체는 과함 — 화면 그래프는 몇 개 점이면 충분)
             "curve_sample": [c for c in result["curve"] if c["age"] % 5 == 0 or c["age"] == req.year - req.year],
+            "peak_windows": {k: _peak_window(v) for k, v in result["peaks"].items()},
         }
     except Exception as e:
         print(f"[fortune curve error] {e}")
