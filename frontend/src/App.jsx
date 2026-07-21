@@ -7,15 +7,20 @@ import PremiumPage from './pages/PremiumPage'
 import SajuFunnelPage from './pages/SajuFunnelPage'
 import TarotFunnelPage from './pages/TarotFunnelPage'
 import { DomainStripBanner } from './components/StripBanners'
+import EventModal from './components/EventModal'
 
 // 🔴 2026-07-19 몰입 퍼널(블루골드 신당) 전환 — 디자인봇 확정본 구현.
 //   기존 탭UI는 ?legacy 로만 접근되는 폴백으로 보존(롤백 안전장치).
 function FunnelApp() {
   const [showTarot, setShowTarot] = useState(false)
-  if (showTarot) {
-    return <TarotFunnelPage onBack={() => setShowTarot(false)} />
-  }
-  return <SajuFunnelPage onSelectTarot={() => setShowTarot(true)} />
+  return (
+    <>
+      {showTarot
+        ? <TarotFunnelPage onBack={() => setShowTarot(false)} />
+        : <SajuFunnelPage onSelectTarot={() => setShowTarot(true)} />}
+      <EventModal />
+    </>
+  )
 }
 
 export default function App() {

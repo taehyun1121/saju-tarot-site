@@ -219,6 +219,67 @@ select.inp{appearance:none;}
 .spocoach .txt b{color:var(--gold);}
 @keyframes spofinger{0%{transform:translateX(28px);opacity:1;}70%{transform:translateX(-16px);opacity:1;}100%{transform:translateX(-16px);opacity:0;}}
 
+/* 오픈이벤트(1+1) 진입 팝업 — 디자인봇 event_modal_pc/mobile.html 이식(2026-07-21).
+   모바일 기준(340px 모달)이 기본, PC(≥900px)는 아래 미디어쿼리로 460px 확대. */
+.evtmodal-stage{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:20px;
+  background:rgba(3,6,13,.80);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+.evtmodal-modal{position:relative;width:340px;max-width:calc(100vw - 40px);max-height:92vh;overflow-y:auto;border-radius:20px;overflow-x:hidden;
+  background:linear-gradient(180deg,rgba(14,21,44,.98),rgba(8,12,26,.99));
+  border:1px solid rgba(212,175,55,.45);box-shadow:0 30px 70px rgba(0,0,0,.7),0 0 46px rgba(42,82,181,.2);}
+.evtmodal-dan{height:5px;background:repeating-linear-gradient(90deg,#1c3d7a 0 12px,#e3c069 12px 24px,#1f6f4e 24px 36px,#2a52b5 36px 48px,#c0392b 48px 53px);opacity:.94;}
+.evtmodal-x{position:absolute;top:15px;right:15px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;z-index:3;
+  background:rgba(255,255,255,.06);border:1px solid rgba(169,180,207,.28);color:var(--muted);font-size:17px;cursor:pointer;}
+.evtmodal-body{position:relative;padding:24px 24px 26px;text-align:center;}
+.evtmodal-inner{position:relative;z-index:2;}
+.evtmodal-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:999px;
+  background:linear-gradient(180deg,rgba(227,192,105,.16),rgba(201,162,75,.08));border:1px solid rgba(212,175,55,.5);
+  font:800 11.5px 'SUIT Variable','Malgun Gothic';letter-spacing:.12em;color:var(--gold);}
+.evtmodal-head{margin-top:15px;font:800 21px/1.45 'Nanum Myeongjo',serif;color:#f7ecd6;}
+.evtmodal-head b{color:var(--gold);}
+.evtmodal-sub{margin-top:8px;font:600 12px/1.55 'SUIT Variable','Malgun Gothic';color:var(--muted);}
+.evtmodal-offer{margin:18px 0 4px;line-height:1;}
+.evtmodal-offer .pct{font:800 50px 'Nanum Myeongjo',serif;color:var(--gold);text-shadow:0 2px 16px rgba(227,192,105,.35);}
+.evtmodal-offer .pct .off{font-size:26px;margin-left:3px;}
+.evtmodal-offer .cap{margin-top:9px;font:700 14px 'SUIT Variable','Malgun Gothic';color:var(--ink);}
+.evtmodal-offer .price{margin-top:5px;font:600 13.5px 'SUIT Variable','Malgun Gothic';color:var(--muted);}
+.evtmodal-offer .price b{color:#f7ecd6;font-weight:800;font-size:15.5px;}
+.evtmodal-benefits{margin:18px 0 16px;display:flex;flex-direction:column;gap:8px;text-align:left;}
+.evtmodal-benefits .brow{display:flex;align-items:center;gap:10px;background:rgba(42,82,181,.13);border:1px solid rgba(212,175,55,.22);border-radius:11px;padding:10px 13px;}
+.evtmodal-benefits .ic{flex:none;width:23px;height:23px;border-radius:50%;display:grid;place-items:center;font-size:12px;color:#0a0f1e;background:linear-gradient(180deg,var(--gold),var(--gold2));font-weight:900;}
+.evtmodal-benefits .tx{font:700 13px 'SUIT Variable','Malgun Gothic';color:var(--ink);}
+.evtmodal-benefits .tx small{display:block;font-weight:600;font-size:11px;color:var(--muted);margin-top:2px;}
+.evtmodal-coupon{display:flex;align-items:center;justify-content:flex-start;gap:11px;margin-bottom:15px;
+  background:linear-gradient(180deg,rgba(192,57,43,.10),rgba(42,82,181,.16));border:1.5px dashed var(--gold);border-radius:11px;padding:10px 14px;}
+.evtmodal-coupon .lab{font:800 10px 'SUIT Variable','Malgun Gothic';letter-spacing:.09em;color:var(--gold2);}
+.evtmodal-coupon .txt{font:800 14px 'SUIT Variable','Malgun Gothic';color:#fff3d6;margin-top:2px;}
+.evtmodal-cta{display:block;width:100%;text-align:center;font:800 16.5px 'SUIT Variable','Malgun Gothic';color:#f7f2e0;padding:16px;border-radius:12px;cursor:pointer;border:none;
+  background:linear-gradient(180deg,var(--cobalt),var(--navy));box-shadow:0 0 0 2px #d4af37,0 8px 22px rgba(0,0,0,.5);}
+.evtmodal-limit{margin-top:12px;font:700 11.5px 'SUIT Variable','Malgun Gothic';color:#ffd9a8;}
+.evtmodal-limit .dot{color:var(--red);}
+.evtmodal-later{margin-top:11px;font:600 12px 'SUIT Variable','Malgun Gothic';color:#7f8aa8;text-decoration:underline;text-underline-offset:3px;cursor:pointer;}
+@media (min-width:900px){
+  .evtmodal-modal{width:460px;border-radius:22px;box-shadow:0 40px 90px rgba(0,0,0,.7),0 0 0 1px rgba(4,8,16,.5),0 0 60px rgba(42,82,181,.18);}
+  .evtmodal-x{top:18px;right:18px;width:34px;height:34px;font-size:18px;}
+  .evtmodal-body{padding:30px 40px 32px;}
+  .evtmodal-badge{padding:7px 16px;font-size:13px;}
+  .evtmodal-head{margin-top:18px;font-size:25px;}
+  .evtmodal-sub{margin-top:9px;font-size:13.5px;}
+  .evtmodal-offer{margin:22px 0 6px;}
+  .evtmodal-offer .pct{font-size:58px;}
+  .evtmodal-offer .pct .off{font-size:30px;}
+  .evtmodal-offer .cap{font-size:15px;}
+  .evtmodal-offer .price{font-size:15px;}
+  .evtmodal-offer .price b{font-size:17px;}
+  .evtmodal-benefits{margin:22px 0 20px;gap:10px;}
+  .evtmodal-benefits .brow{padding:12px 15px;border-radius:12px;gap:12px;}
+  .evtmodal-benefits .ic{width:26px;height:26px;font-size:13px;}
+  .evtmodal-benefits .tx{font-size:14px;} .evtmodal-benefits .tx small{font-size:12px;}
+  .evtmodal-coupon{margin-bottom:18px;border-radius:12px;padding:12px 16px;}
+  .evtmodal-cta{font-size:18px;padding:17px;border-radius:13px;}
+  .evtmodal-limit{margin-top:14px;font-size:12.5px;}
+  .evtmodal-later{margin-top:12px;font-size:13px;}
+}
+
 /* 무료 스포 티저 — 오행(soft)/인생그래프(hard) — 디자인봇 spo_teaser.html 이식(2026-07-21) */
 .radar-mini{display:flex;flex-direction:column;align-items:center;}
 .oh-legend{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;justify-content:center;}
