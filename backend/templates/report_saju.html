@@ -186,13 +186,24 @@ h1,h2,h3{margin:0;}
 .wol{padding:10px 11px;} .wol .mo{font-weight:900;font-size:13px;color:var(--gold);}
 .wol .gj{font-size:12px;color:#e7ecf8;margin:2px 0;} .wol .ol{font-size:10.5px;color:#aab3cc;}
 .disc{display:inline-block;font-size:10.5px;color:#ffd9a8;background:rgba(192,57,43,.14);border:1px solid rgba(212,175,55,.35);border-radius:99px;padding:2px 10px;margin-bottom:10px;}
+/* ⑪ 연애인연 (2026-07-21 디자인봇 개정판 — WCAG1.4.1: 아이콘+라벨+근거 주정보, 색은 보조 / 10년주기 칩) */
 .yeonae-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.yn{padding:14px 15px;} .yn.good{border:1px solid rgba(63,167,106,.4);} .yn.warn{border:1px solid rgba(192,57,43,.4);}
-.yn .yh{font-weight:900;font-size:14px;margin-bottom:9px;} .yn.good .yh{color:#7fe0a6;} .yn.warn .yh{color:#ff9a8f;}
-.yn .yrow{display:flex;align-items:baseline;gap:7px;margin-bottom:6px;}
-.yn .yn-nm{font-weight:700;font-size:13px;color:#f7ecd6;} .yn .yn-ct{font-size:11px;color:var(--muted);}
-.yn .yn-nt{font-size:11px;color:#aab3cc;}
-.favor{margin-top:10px;font-size:12px;color:var(--muted);}.favor b{color:var(--gold);}
+.yn{padding:15px 16px;border-left-width:4px;border-left-style:solid;}
+.yn.ok{border-left-color:var(--ok);} .yn.warn{border-left-color:var(--red);}
+.yn .yh{display:flex;align-items:center;gap:9px;margin-bottom:4px;}
+.yn .yi{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;}
+.yn.ok .yi{background:rgba(63,167,106,.16);color:#7fe0a6;border:1.5px solid rgba(63,167,106,.55);}
+.yn.warn .yi{background:rgba(192,57,43,.16);color:#ff9a8f;border:1.5px solid rgba(192,57,43,.55);}
+.yn .yl{font-weight:900;font-size:15px;color:#f7ecd6;} .yn .yl b{display:block;font-weight:700;font-size:11.5px;color:var(--gold2);margin-top:1px;}
+.yn .yreason{font-size:12.5px;line-height:1.55;color:#cdd4e6;margin:8px 0 11px;}
+.yn .yclab{font-weight:700;font-size:10.5px;letter-spacing:.04em;color:var(--muted);margin-bottom:6px;}
+.yn .ychips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px;}
+.yn .chip{font-weight:700;font-size:11px;color:#c7cfe4;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:2px 7px;}
+.yn.ok .chip.cur{background:rgba(63,167,106,.2);border-color:var(--ok);color:#a6f0c6;}
+.yn.warn .chip.cur{background:rgba(192,57,43,.2);border-color:var(--red);color:#ffc0b6;}
+.yn .ynext{font-size:11.5px;color:#dbe1f0;background:rgba(42,82,181,.14);border:1px solid rgba(212,175,55,.28);border-radius:9px;padding:8px 11px;}
+.yn .ynext b{color:var(--gold);} .yn .ynext .now{color:#a6f0c6;font-weight:800;}
+.yn.warn .ynext .now{color:#ffc0b6;}
 </style></head>
 <body>
 
@@ -349,28 +360,18 @@ h1,h2,h3{margin:0;}
 
 {% if yeonae %}
 <section class="section"><div class="shead"><span class="seal">❖</span><span class="n">연애 <b>인연</b></span><span class="en">Love Affinity</span></div>
-<div class="lead">사주에 든 인연의 결 — 안정형과 굴곡형을 나눠 봅니다.</div>
+<div class="lead">사주에 든 인연의 결과, 그 인연이 <b style="color:var(--gold)">10년 주기</b>로 찾아오는 해입니다.</div>
 <div class="yeonae-grid">
-  <div class="card-base yn good"><div class="yh">◆ 좋은 인연</div>{% for y in yeonae.good %}<div class="yrow"><span class="yn-nm">{{y.name}}</span><span class="yn-ct">×{{y.count}}</span></div><div class="yn-nt">{{y.note}}</div>{% endfor %}</div>
-  <div class="card-base yn warn"><div class="yh">◆ 주의할 인연</div>{% for y in yeonae.warn %}<div class="yrow"><span class="yn-nm">{{y.name}}</span><span class="yn-ct">×{{y.count}}</span></div><div class="yn-nt">{{y.note}}</div>{% endfor %}</div>
-</div>
-<div class="favor">우호 인연이 이어지는 기간 — 최근 <b>{{yeonae.favor_years}}년</b> 연속</div></section>
-{% endif %}
-
-{% if good_love_runs or care_love_runs %}
-<section class="section">
-  <div class="shead"><span class="seal">❖</span><span class="n">연애 인연 — <b>시기별</b> 상세</span><span class="en">Relationship Windows</span></div>
-  <div class="lead">위 요약을 실제 나이·연도로 풀어낸 목록입니다.</div>
-  <div class="sip-grid" style="grid-template-columns:1fr 1fr;">
-    {% for r in good_love_runs %}
-    <div class="card-base sip" style="text-align:left;border-left:3px solid var(--ok);"><div class="nm" style="font-size:12px;">💚 {{ r.start_age }}~{{ r.end_age }}세</div><div class="mn">{{ r.start_year }}~{{ r.end_year }}년 · {{ r.years }}년 연속</div></div>
-    {% endfor %}
-    {% for r in care_love_runs %}
-    <div class="card-base sip" style="text-align:left;border-left:3px solid var(--red);"><div class="nm" style="font-size:12px;">⚠ {{ r.start_age }}~{{ r.end_age }}세</div><div class="mn">{{ r.start_year }}~{{ r.end_year }}년 · {{ r.years }}년 연속</div></div>
-    {% endfor %}
+  {% for k in ['good','warn'] %}{% set y = yeonae[k] %}
+  <div class="card-base yn {{y.tone}}">
+    <div class="yh"><span class="yi">{{y.icon}}</span><span class="yl">{{y.label}}<b>{{y.sipseong}} · {{y.count}}개</b></span></div>
+    <div class="yreason">{{y.reason}}</div>
+    <div class="yclab">이런 해에 찾아옵니다</div>
+    <div class="ychips">{% for c in y.chips %}<span class="chip {% if c.cur %}cur{% endif %}">{{c.age}}세</span>{% endfor %}</div>
+    <div class="ynext">{% if y.next.is_now %}<span class="now">바로 올해</span> — {{y.next.age}}세 ({{y.next.year}}년)가 {{y.label}}의 해입니다{% else %}다음 {{y.label}}의 해 · <b>{{y.next.age}}세</b> ({{y.next.year}}년){% endif %}</div>
   </div>
-  <div class="disclaimer">⚠ 이 기간은 "인연이 나타나기 좋은 시기의 길이"이지, 관계 자체의 지속기간을 예측하는 것이 아닙니다. 실제 관계 지속은 상대방 사주와의 궁합에 따라 달라집니다.</div>
-</section>
+  {% endfor %}
+</div></section>
 {% endif %}
 
 {% if child_text %}
