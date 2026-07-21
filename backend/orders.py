@@ -21,6 +21,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from ratelimit import rate_limit
+from reports import send_report_email
 from sqlalchemy import (Boolean, Column, DateTime, Integer, String, Text,
                         create_engine)
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -56,6 +57,15 @@ def _promo_active():
     return now_kst() < PROMO_1PLUS1_END
 
 
+def _order_within_promo(created_at):
+    # 🔒 2026-07-21 실측 발견: SQLite(DATABASE_URL 미설정 시 기본값, 지금 프로덕션도 이 상태)는
+    # DateTime(timezone=True) 컬럼이어도 읽어올 때 tz정보 없는 naive datetime을 돌려줌 —
+    # tz-aware PROMO_1PLUS1_END와 직접 비교하면 TypeError로 결제승인 자체가 500 남(실제 재현됨).
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=KST)
+    return created_at < PROMO_1PLUS1_END
+
+
 @router.get("/api/promo")
 def get_promo():
     active = _promo_active()
@@ -77,6 +87,11 @@ class Order(Base):
     status = Column(String(24), default="pending", index=True)
     # pending → deposit_claimed(입금했어요 클릭) → paid / manual_review / expired
     matched_tx = Column(Text, default="")         # 매칭된 입금 원본
+    # 프론트가 화면에 이미 띄운 풀이 결과 그대로(JSON) — PDF 자동생성용.
+    # 서버 재계산 안 하는 이유: 타로는 랜덤뽑기라 재계산하면 다른 카드가 나옴 —
+    # 고객이 화면에서 실제로 본 그 결과와 PDF가 반드시 같아야 함.
+    reading_data = Column(Text, default="")
+    email_sent = Column(Boolean, default=False)   # PDF 이메일 발송 완료 여부(재발송 방지)
     created_at = Column(DateTime(timezone=True), default=now_kst)
     updated_at = Column(DateTime(timezone=True), default=now_kst, onupdate=now_kst)
 
@@ -91,6 +106,23 @@ class RawWebhook(Base):
 
 
 Base.metadata.create_all(engine)
+
+# ── 경량 마이그레이션 ─────────────────────────────────────────
+# create_all()은 신규 테이블만 만들고 기존 테이블엔 컬럼을 안 더해줌.
+# Alembic 없는 소규모 프로젝트라, 없는 컬럼만 안전하게 ALTER로 보강.
+def _ensure_columns():
+    from sqlalchemy import inspect, text
+    insp = inspect(engine)
+    existing = {c["name"] for c in insp.get_columns("orders")}
+    with engine.begin() as conn:
+        if "reading_data" not in existing:
+            conn.execute(text("ALTER TABLE orders ADD COLUMN reading_data TEXT DEFAULT ''"))
+        if "email_sent" not in existing:
+            default = "0" if engine.url.get_backend_name() == "sqlite" else "false"
+            conn.execute(text(f"ALTER TABLE orders ADD COLUMN email_sent BOOLEAN DEFAULT {default}"))
+
+
+_ensure_columns()
 
 # ── 상품 ─────────────────────────────────────────────────────
 PRODUCTS = {
@@ -280,13 +312,26 @@ def _approve(db, order: Order, raw: str):
     order.status = "paid"
     order.matched_tx = raw[:2000]
     db.commit()
+
+    # PDF 자동발송 시도 — 디자인봇 템플릿(templates/report_*.html)이 없으면 조용히 스킵되고
+    # 기존 Discord 수동알림 흐름만 동작(아래). 실패해도 결제 승인 자체는 이미 끝난 뒤라 안전.
+    email_sent = False
+    try:
+        email_sent = send_report_email(order)
+        if email_sent:
+            order.email_sent = True
+            db.commit()
+    except Exception as e:
+        print(f"[report email] 발송 실패: {e}")
+
     # 주문 "생성 시점"이 프로모션 기간 내였는지로 판정(승인이 자정 넘겨 지연돼도 고객 기준 공정하게)
-    promo_tag = "\n🎉 **1+1 오픈이벤트 대상 — 결과물 2건 준비해서 보내주세요**" if order.created_at < PROMO_1PLUS1_END else ""
+    promo_tag = "\n🎉 **1+1 오픈이벤트 대상 — 결과물 2건 준비해서 보내주세요**" if _order_within_promo(order.created_at) else ""
+    delivery_note = "\n✉️ PDF 자동발송 완료" if email_sent else "\n→ 심화풀이 전달 필요(자동발송 미적용 — 수동 전달)"
     _discord_notify(
         f"✅ **입금 확인 — 자동 승인**\n"
         f"주문 `{order.id}` | {order.product_name} ₩{order.amount:,}\n"
-        f"입금자: {order.buyer_name} (코드 {order.code}) | 연락처: {order.contact}\n"
-        f"→ 심화풀이 전달 필요{promo_tag}"
+        f"입금자: {order.buyer_name} (코드 {order.code}) | 연락처: {order.contact}"
+        f"{delivery_note}{promo_tag}"
     )
 
 
@@ -296,6 +341,7 @@ class OrderCreate(BaseModel):
     buyer_name: str
     contact: str
     question: str = ""
+    reading_data: dict | None = None   # 프론트가 화면에 이미 띄운 결과(사주/타로) — PDF 자동생성용
 
 
 @router.post("/api/orders")
@@ -311,6 +357,11 @@ def create_order(body: OrderCreate, request: Request):
     if not body.contact.strip():
         raise HTTPException(400, "결과를 받을 연락처를 입력해주세요")
 
+    try:
+        reading_json = json.dumps(body.reading_data, ensure_ascii=False)[:40000] if body.reading_data else ""
+    except (TypeError, ValueError):
+        reading_json = ""
+
     product = PRODUCTS[body.product]
     order = Order(
         id=secrets.token_hex(8),
@@ -321,6 +372,7 @@ def create_order(body: OrderCreate, request: Request):
         buyer_name=name,
         contact=body.contact.strip()[:128],
         question=body.question.strip()[:2000],
+        reading_data=reading_json,
     )
     with SessionLocal() as db:
         db.add(order)
@@ -393,7 +445,7 @@ def claim_deposit(order_id: str, request: Request):
 
         order.status = "deposit_claimed"
         db.commit()
-        promo_tag = "\n🎉 **1+1 오픈이벤트 대상**" if order.created_at < PROMO_1PLUS1_END else ""
+        promo_tag = "\n🎉 **1+1 오픈이벤트 대상**" if _order_within_promo(order.created_at) else ""
         _discord_notify(
             f"🔔 **입금 확인 요청** (아직 웹훅 미도착)\n"
             f"주문 `{order.id}` | {order.product_name} ₩{order.amount:,}\n"
