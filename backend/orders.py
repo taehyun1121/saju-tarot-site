@@ -172,7 +172,19 @@ def _check_bankapi(db, order, throttle_sec=60):
         name = re.sub(r"\s", "", f"{tx.get('displayName','')}{tx.get('counterparty','')}")
         buyer = re.sub(r"\s", "", order.buyer_name or "")
         if (order.code and order.code in name) or (buyer and buyer in name):
-            _approve(db, order, json.dumps(tx, ensure_ascii=False))
+            # 🔒 2026-07-21: 코드 없이 이름만으로 매칭하는 게 주력 경로가 되면서 발견 —
+            # 웹훅 경로(RawWebhook.processed)와 달리 이 경로는 "이 거래 이미 썼음" 기록이
+            # 없어서, 같은 실제 입금 1건으로 동일 금액 주문 여러 건을 전부 자동승인시킬 수
+            # 있었음(1번 결제로 N개 무료 획득). 거래 자체를 정규화 지문으로 남겨 재사용 차단.
+            fingerprint = json.dumps(tx, ensure_ascii=False, sort_keys=True)
+            already_used = (
+                db.query(Order)
+                .filter(Order.status == "paid", Order.matched_tx == fingerprint)
+                .first()
+            )
+            if already_used:
+                continue
+            _approve(db, order, fingerprint)
             return True
     return False
 
