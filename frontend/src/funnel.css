@@ -5,6 +5,7 @@
 .funnel-root{
   --bg:#0a1120; --surface:rgba(16,26,52,.72); --line:rgba(212,175,55,.34);
   --crimson:#17306b; --red:#2a52b5; --gold:#e3c069; --gold2:#c9a24b; --ink:#f4ead2; --muted:#a9b4cf;
+  --wood:#3fa76a; --fire:#e06a5a; --earth:#e0c07a; --metal:#dfe2ec; --water:#5f8bff;
   --scrim:linear-gradient(180deg,rgba(6,11,26,.5) 0%,rgba(6,11,26,0) 26%,rgba(6,11,26,0) 50%,rgba(6,11,26,.94) 100%);
   --stage:radial-gradient(120% 75% at 50% 8%, #16273f 0%, #0d1526 55%, #080e1a 100%);
   --hanji:.10;
@@ -217,6 +218,22 @@ select.inp{appearance:none;}
 .spocoach .txt{font:800 16px system-ui;color:#f7ecd6;text-shadow:0 2px 10px #000;margin-top:6px;}
 .spocoach .txt b{color:var(--gold);}
 @keyframes spofinger{0%{transform:translateX(28px);opacity:1;}70%{transform:translateX(-16px);opacity:1;}100%{transform:translateX(-16px);opacity:0;}}
+
+/* 무료 스포 티저 — 오행(soft)/인생그래프(hard) — 디자인봇 spo_teaser.html 이식(2026-07-21) */
+.radar-mini{display:flex;flex-direction:column;align-items:center;}
+.oh-legend{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;justify-content:center;}
+.oh-l{display:flex;align-items:center;gap:5px;font:700 12px system-ui;color:var(--ink);}
+.oh-d{width:10px;height:10px;border-radius:50%;}
+.bg-wood{background:var(--wood);} .bg-fire{background:var(--fire);} .bg-earth{background:var(--earth);} .bg-metal{background:var(--metal);} .bg-water{background:var(--water);}
+.cl-wood{color:var(--wood);} .cl-fire{color:var(--fire);} .cl-earth{color:var(--earth);} .cl-metal{color:var(--metal);} .cl-water{color:var(--water);}
+.life-lock{position:absolute;top:0;bottom:0;right:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  background:linear-gradient(90deg,rgba(10,17,32,0),rgba(10,17,32,.6) 30%,rgba(10,17,32,.78));backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  border-left:1px dashed rgba(227,192,105,.5);border-radius:0 16px 16px 0;color:var(--gold);font:800 12px system-ui;text-align:center;}
+.life-lock .lk{font-size:22px;}
+.life-cap{display:flex;justify-content:space-between;font:700 11px system-ui;color:var(--muted);margin-top:8px;padding:0 2px;}
+.pcwide .radar-mini,.pcwide .oh-legend{align-items:center;}
+.pcwide .oh-l{font-size:14px;}
+.pcwide .life-lock{font-size:14px;} .pcwide .life-lock .lk{font-size:26px;}
 
 /* 페이월 */
 .locked{position:relative;margin:6px 0 16px;border-radius:16px;overflow:hidden;border:1px solid var(--line);}

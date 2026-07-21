@@ -17,9 +17,9 @@ from google.genai import types
 
 from saju import calc_pillars, calc_daeun, build_reading, build_compatibility_reading, CHEONGAN, JIJI, ILGAN_TRAITS
 from tarot import SPREADS, draw_cards, finalize_cards, get_meaning, get_saju_meaning, get_overall_summary
-from saju_rule_engine import Pillars as _EnginePillars
+from saju_rule_engine import Pillars as _EnginePillars, ohaeng_count
 from saju_fortune_curve import score_curve
-from saju_narrative import rule_based_ai_reading, rule_based_decade_reading
+from saju_narrative import rule_based_ai_reading, rule_based_decade_reading, ohaeng_legend, radar_svg, lifegraph_svg
 
 # ── Gemini API 클라이언트 ────────────────────────────────────
 _gemini_client = None
@@ -480,9 +480,14 @@ def calculate_saju(req: SajuRequest, request: Request):
              for d in range(10, 80, 10)],
             ILGAN_TRAITS.get(dp[0], {}), engine_pillars, req.gender)
 
+    # 오행 레이더(무료 스포 티저용) — ohaeng_count()는 이미 검증된 판정, 새 로직 없음.
+    ohaeng_items = ohaeng_legend(ohaeng_count(engine_pillars))
+    radar = radar_svg(ohaeng_items, size=200)
+
     # 운세곡선 엔진(saju_fortune_curve) — AI 미사용, 결정론적 명리 룰. 4대운 피크(대박·조심·연애·결혼)
     # 실패해도 전체 API는 죽지 않게 격리(엔진은 부가 기능, saju 핵심 결과에 영향 없음).
     fortune = None
+    life = None
     try:
         daewoon_su = daeun[0]["start"] if daeun else None
         result = score_curve(engine_pillars, req.gender, req.year, daewoon_su=daewoon_su, age_range=(3, 83))
@@ -503,6 +508,7 @@ def calculate_saju(req: SajuRequest, request: Request):
             "curve_sample": [c for c in result["curve"] if c["age"] % 5 == 0 or c["age"] == req.year - req.year],
             "peak_windows": {k: _peak_window(v) for k, v in result["peaks"].items()},
         }
+        life = lifegraph_svg([{"age": c["age"], "score": round(c["score"])} for c in result["curve"]], W=336, H=110)
     except Exception as e:
         print(f"[fortune curve error] {e}")
 
@@ -517,6 +523,9 @@ def calculate_saju(req: SajuRequest, request: Request):
         "decade_readings": decades,
         "ai_available": gemini_worked,
         "fortune": fortune,
+        "ohaeng": ohaeng_items,
+        "radar": radar,
+        "life": life,
     }
 
 # ── 궁합 ───────────────────────────────────────────────────

@@ -85,7 +85,52 @@ function Graph({ pts, peakX, color }) {
   )
 }
 
+// 오행 레이더 SVG(soft 티저) — 백엔드 radar_svg() 기하값 그대로 그림, 새 계산 없음.
+function OhaengRadarSvg({ radar }) {
+  return (
+    <svg width={radar.size} height={radar.size} viewBox={`0 0 ${radar.size} ${radar.size}`}>
+      {radar.grid.map((g, i) => <polygon key={i} points={g} fill="none" stroke="rgba(227,192,105,.15)" />)}
+      {radar.axes.map((a, i) => <line key={i} x1={a[0]} y1={a[1]} x2={a[2]} y2={a[3]} stroke="rgba(227,192,105,.18)" />)}
+      <polygon points={radar.poly} fill="rgba(227,192,105,.25)" stroke="#e3c069" strokeWidth="2" />
+      {radar.labels.map((l, i) => {
+        const pt = radar.poly.split(' ')[i].split(',')
+        return (
+          <g key={l.key}>
+            <circle cx={pt[0]} cy={pt[1]} r="3" fill="#e3c069" />
+            <text x={l.x} y={l.y} fill={`var(--${l.key})`} fontSize="13" fontWeight="800" textAnchor="middle" dominantBaseline="middle">{l.label}</text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+// 인생그래프 SVG(hard 티저) — 곡선은 실데이터 그대로 보이되, 정점 나이·점수는 카피에서 블러 처리.
+function LifeGraphSvg({ life }) {
+  return (
+    <svg viewBox={`0 0 ${life.W} ${life.H}`} style={{ width: '100%', height: life.H }}>
+      <defs><linearGradient id="lifeteaser" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#e3c069" stopOpacity=".32" /><stop offset="1" stopColor="#e3c069" stopOpacity="0" />
+      </linearGradient></defs>
+      <path d={life.area} fill="url(#lifeteaser)" />
+      <path d={life.line} fill="none" stroke="#e3c069" strokeWidth="2" strokeLinejoin="round" />
+      <circle cx={life.peak.x} cy={life.peak.y} r="4.5" fill="#e3c069" stroke="#0a1120" strokeWidth="1.5" />
+      <circle cx={life.trough.x} cy={life.trough.y} r="4.5" fill="#c0392b" stroke="#0a1120" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
 const Rd = ({ children }) => <span className="rd">{children}</span>
+
+const OHAENG_HANJA = { wood: '木', fire: '火', earth: '土', metal: '金', water: '水' }
+
+// 오행 카운트에서 최강/최약 기운 도출(무료 스포 티저 실데이터 바인딩용) — 새 판정 없이 이미 계산된 ohaeng 배열 재사용.
+function strongWeakOhaeng(ohaeng) {
+  if (!ohaeng || !ohaeng.length) return null
+  const strong = ohaeng.reduce((a, b) => (b.count > a.count ? b : a))
+  const weak = ohaeng.reduce((a, b) => (b.count < a.count ? b : a))
+  return { strong, weak }
+}
 
 // 그래프 y좌표 정규화(score 0~100 → svg y 10~108, 높을수록 위)
 const scoreToY = (score) => Math.round(10 + (100 - Math.max(0, Math.min(100, score))) / 100 * 98)
@@ -155,16 +200,20 @@ const Top = ({ onBack }) => (
 )
 
 export default function SajuFunnelPage({ onSelectTarot }) {
-  const [screen, setScreen] = useState(0)   // 0=랜딩 1=선택 2=입력 3~6=스포 7=페이월
+  const [screen, setScreen] = useState(0)   // 0=랜딩 1=선택 2=입력 3~6=스포 7=오행티저 8=인생그래프티저 9=페이월
   const [form, setForm] = useState({ year: '', month: '', day: '', hour: '', gender: '여', name: '' })
   const [sajuResult, setSajuResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [orderOpen, setOrderOpen] = useState(false)
 
-  const go = (n) => setScreen(Math.max(0, Math.min(7, n)))
+  const go = (n) => setScreen(Math.max(0, Math.min(9, n)))
   const specs = sajuResult ? spoSpecs(sajuResult) : spoSpecs(null)
   const isDesktop = useIsDesktop()
+  const ohaeng = sajuResult?.ohaeng || []
+  const radar = sajuResult?.radar || null
+  const life = sajuResult?.life || null
+  const sw = strongWeakOhaeng(ohaeng)
 
   // 모바일 스포화면 swipe 제스처 + 최초 1회 코치마크 — 출처: 디자인봇 gate:spo_nav 목업(spo_nav_mobile.html)
   const [dragX, setDragX] = useState(0)
@@ -322,7 +371,7 @@ export default function SajuFunnelPage({ onSelectTarot }) {
                   </button>
                 ))}
               </div>
-              <button className="sponavbtn next" onClick={() => go(screen + 1)}>{screen < 6 ? '다음 운세 ›' : '전체 결과 보기 ›'}</button>
+              <button className="sponavbtn next" onClick={() => go(screen + 1)}>{screen < 6 ? '다음 운세 ›' : '타고난 기운 보기 ›'}</button>
             </div>
             <div className="navhint">키보드 ← → · 마우스 휠 · 위 칩 클릭 — 어느 방법으로도 넘기실 수 있습니다</div>
           </PcWide>
@@ -332,7 +381,62 @@ export default function SajuFunnelPage({ onSelectTarot }) {
     if (screen === 7) {
       return (
         <div className="funnel-root">
-          <PcWide onBack={() => go(6)}>
+          <PcWide onBack={() => go(6)} center onPrev={() => go(6)} onNext={() => go(8)}>
+            <div className="spo">
+              <div className="graphbox">
+                <span className="spobadge">☯ 오행 · 타고난 기운</span>
+                {radar ? <div className="radar-mini">
+                  <OhaengRadarSvg radar={radar} />
+                  <div className="oh-legend">{ohaeng.map(o => (
+                    <span key={o.key} className="oh-l"><span className={`oh-d bg-${o.key}`} /><span className={`cl-${o.key}`}>{o.label}</span> {o.count}</span>
+                  ))}</div>
+                </div> : <div className="spoline serif">오행 데이터를 불러오지 못했습니다</div>}
+                {sw && <div className="spoline serif">가장 강한 기운은 <span className="hl">{sw.strong.label}</span>, {sw.strong.count}개입니다.</div>}
+              </div>
+              <div className="reading">
+                {sw && <>{OHAENG_HANJA[sw.strong.key]}({sw.strong.label})이 가장 세고, {sw.weak.count === 0 ? <><Rd>▓</Rd>의 기운은 비어 있습니다.</> : <>{sw.weak.label}의 기운이 가장 약합니다.</>} 이 치우침이 당신의 <Rd>▓▓</Rd>과 <Rd>▓▓▓</Rd>을 좌우합니다. 비어 있는 기운을 채우는 방법은 따로 있습니다.</>}
+                <div className="lock">🔒 비어 있는 기운과 채우는 법은 신당 안에서 다 보여드립니다</div>
+              </div>
+            </div>
+            <div className="sponavbar">
+              <button className="sponavbtn prev" onClick={() => go(6)}>‹ 이전</button>
+              <button className="sponavbtn next" onClick={() => go(8)}>인생그래프 보기 ›</button>
+            </div>
+          </PcWide>
+        </div>
+      )
+    }
+    if (screen === 8) {
+      const warnPct = life?.warn_x ? ((parseFloat(life.right_x) - parseFloat(life.warn_x)) / life.W) * 100 : 0
+      return (
+        <div className="funnel-root">
+          <PcWide onBack={() => go(7)} center onPrev={() => go(7)} onNext={() => go(9)}>
+            <div className="spo">
+              <div className="graphbox">
+                <span className="spobadge">📈 인생그래프 · 운의 정점</span>
+                {life ? <div style={{ position: 'relative' }}>
+                  <LifeGraphSvg life={life} />
+                  {life.warn_x && <div className="life-lock" style={{ width: `${warnPct}%` }}><span className="lk">🔒</span>45세<br />이후</div>}
+                </div> : <div className="spoline serif">인생그래프 데이터를 불러오지 못했습니다</div>}
+                <div className="spoline serif">인생의 정점은 <Rd>▓▓세</Rd>에 옵니다.</div>
+              </div>
+              <div className="reading">
+                가장 높이 오르는 해와 가장 낮게 가라앉는 해는 <Rd>▓▓년</Rd> 안에 갈립니다. 그 사이 반드시 지나야 할 <Rd>▓▓</Rd>이 있고, 45세 이후 <Rd>▓▓▓</Rd>을 특히 조심하셔야 합니다.
+                <div className="lock">🔒 정점의 정확한 나이·점수와 그 이유는 신당 안에서</div>
+              </div>
+            </div>
+            <div className="sponavbar">
+              <button className="sponavbtn prev" onClick={() => go(7)}>‹ 이전</button>
+              <button className="sponavbtn next" onClick={() => go(9)}>전체 결과 보기 ›</button>
+            </div>
+          </PcWide>
+        </div>
+      )
+    }
+    if (screen === 9) {
+      return (
+        <div className="funnel-root">
+          <PcWide onBack={() => go(8)}>
             <span className="ey">여기까지가 무료 스포입니다</span>
             <div className="htitle" style={{ fontSize: 36, marginBottom: 26 }}>정확한 <span className="g">연도</span>와 전체 풀이는 신당 <span className="r">안에서</span></div>
             <div className="hdesc" style={{ marginBottom: 18 }}>언제·얼마나·어떻게. 흐릿한 건 제가 다 걷어 드립니다.</div>
@@ -350,7 +454,7 @@ export default function SajuFunnelPage({ onSelectTarot }) {
 
   return (
     <div className="funnel-root">
-      <TheaterFrame screen={screen} total={8} onPrev={() => go(screen - 1)} onNext={() => go(screen + 1)}>
+      <TheaterFrame screen={screen} total={10} onPrev={() => go(screen - 1)} onNext={() => go(screen + 1)}>
       <div className="ph">
         {screen === 1 && (
           <>
@@ -449,7 +553,7 @@ export default function SajuFunnelPage({ onSelectTarot }) {
                 </div>
                 <div className="spomnav">
                   <button className="spomprev" disabled={screen === 3} onClick={() => go(screen - 1)}>‹</button>
-                  <button className="spomnext" onClick={() => go(screen + 1)}>{screen < 6 ? '다음 운세 ›' : '전체 결과 보기 ›'}</button>
+                  <button className="spomnext" onClick={() => go(screen + 1)}>{screen < 6 ? '다음 운세 ›' : '타고난 기운 보기 ›'}</button>
                 </div>
               </div>
               {screen === 3 && !coachSeen && (
@@ -468,6 +572,59 @@ export default function SajuFunnelPage({ onSelectTarot }) {
           <>
             <div className="stage" /><div className="texture" /><div className="ambient" />
             <Top onBack={() => go(6)} />
+            <div className="frameborder" />
+            <div className="content">
+              <span className="spobadge">☯ 오행 · 타고난 기운</span>
+              {radar ? <div className="graph"><div className="radar-mini">
+                <OhaengRadarSvg radar={radar} />
+                <div className="oh-legend">{ohaeng.map(o => (
+                  <span key={o.key} className="oh-l"><span className={`oh-d bg-${o.key}`} /><span className={`cl-${o.key}`}>{o.label}</span> {o.count}</span>
+                ))}</div>
+              </div></div> : <div className="reading">오행 데이터를 불러오지 못했습니다.</div>}
+              {sw && <div className="spoline">가장 강한 기운은 <span className="hl">{sw.strong.label}</span>, {sw.strong.count}개입니다.</div>}
+              {sw && (
+                <div className="reading">
+                  {OHAENG_HANJA[sw.strong.key]}({sw.strong.label})이 가장 세고, {sw.weak.count === 0 ? <><Rd>▓</Rd>의 기운은 비어 있습니다.</> : <>{sw.weak.label}의 기운이 가장 약합니다.</>} 이 치우침이 당신의 <Rd>▓▓</Rd>과 <Rd>▓▓▓</Rd>을 좌우합니다. 비어 있는 기운을 채우는 방법은 따로 있습니다.
+                </div>
+              )}
+              <div className="lockline">🔒 비어 있는 기운과 채우는 법은 신당 안에서 다 보여드립니다</div>
+              <div className="spomnav">
+                <button className="spomprev" onClick={() => go(6)}>‹</button>
+                <button className="spomnext" onClick={() => go(8)}>인생그래프 보기 ›</button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {screen === 8 && (() => {
+          const warnPct = life?.warn_x ? ((parseFloat(life.right_x) - parseFloat(life.warn_x)) / life.W) * 100 : 0
+          return (
+          <>
+            <div className="stage" /><div className="texture" /><div className="ambient" />
+            <Top onBack={() => go(7)} />
+            <div className="frameborder" />
+            <div className="content">
+              <span className="spobadge">📈 인생그래프 · 운의 정점</span>
+              {life ? <div className="graph" style={{ position: 'relative' }}>
+                <LifeGraphSvg life={life} />
+                {life.warn_x && <div className="life-lock" style={{ width: `${warnPct}%` }}><span className="lk">🔒</span>45세<br />이후</div>}
+              </div> : <div className="reading">인생그래프 데이터를 불러오지 못했습니다.</div>}
+              <div className="spoline">인생의 정점은 <Rd>▓▓세</Rd>에 옵니다.</div>
+              <div className="reading">가장 높이 오르는 해와 가장 낮게 가라앉는 해는 <Rd>▓▓년</Rd> 안에 갈립니다. 그 사이 반드시 지나야 할 <Rd>▓▓</Rd>이 있고, 45세 이후 <Rd>▓▓▓</Rd>을 특히 조심하셔야 합니다.</div>
+              <div className="lockline">🔒 정점의 정확한 나이·점수와 그 이유는 신당 안에서</div>
+              <div className="spomnav">
+                <button className="spomprev" onClick={() => go(7)}>‹</button>
+                <button className="spomnext" onClick={() => go(9)}>전체 결과 보기 ›</button>
+              </div>
+            </div>
+          </>
+          )
+        })()}
+
+        {screen === 9 && (
+          <>
+            <div className="stage" /><div className="texture" /><div className="ambient" />
+            <Top onBack={() => go(8)} />
             <div className="frameborder" /><div className="seal" style={{ right: 26, top: 92 }}>❖</div>
             <div className="content">
               <span className="ey">여기까지가 무료 스포입니다</span>
