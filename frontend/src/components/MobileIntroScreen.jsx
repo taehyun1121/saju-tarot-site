@@ -21,6 +21,21 @@ export default function MobileIntroScreen({ onEnter }) {
     return () => { v.removeEventListener('ended', onEnded); clearTimeout(failsafe) }
   }, [])
 
+  // 🔴 코코 추가(2026-07-21, 실사용자 피드백): iOS 저전력 모드는 autoplay를 OS 정책으로 강제 차단
+  // (muted/playsInline 다 넣어도 못 뚫음, 웹표준에 우회 API 없음) — 대신 "사용자 제스처가 있으면"
+  // 재생은 허용되므로, 화면 아무 곳이나 첫 터치/클릭에 바로 재생을 시도해 체감 지연을 최소화.
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    const tryPlay = () => { if (v.paused) v.play().catch(() => {}) }
+    document.addEventListener('touchstart', tryPlay, { once: true, passive: true })
+    document.addEventListener('click', tryPlay, { once: true })
+    return () => {
+      document.removeEventListener('touchstart', tryPlay)
+      document.removeEventListener('click', tryPlay)
+    }
+  }, [])
+
   return (
     <div className="ph mobintro">
       <video ref={videoRef} className="mobintro-bg" src={introVideo} poster={introPoster}
