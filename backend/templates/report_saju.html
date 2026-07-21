@@ -311,6 +311,39 @@ h1,h2,h3{margin:0;}
 </section>
 {% endif %}
 
+{% if child_text %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">자녀 <b>인연</b></span><span class="en">Children</span></div>
+  <div class="flow"><p>{{ child_text }}</p></div>
+</section>
+{% endif %}
+
+{% if compat_love %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">이성 <b>궁합</b> 특징</span><span class="en">Love Compatibility</span></div>
+  <div class="flow"><p>{{ compat_love }}</p></div>
+</section>
+{% endif %}
+
+{% if compat_work %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">동료·직장 <b>궁합</b> 특징</span><span class="en">Work Compatibility</span></div>
+  <div class="flow"><p>{{ compat_work }}</p></div>
+</section>
+{% endif %}
+
+{% if marriage_candidates %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">결혼 <b>적기</b> 후보</span><span class="en">Marriage Timing</span></div>
+  <div class="lead">일지합·천을귀인·도화 조건이 겹치는 정도로 매긴 순위입니다. 겹치는 조건이 많을수록 유력한 후보입니다.</div>
+  <div class="dwgrid">
+    {% for m in marriage_candidates %}
+    <div class="dwcard"><div class="rg">{{ loop.index }}순위</div><div class="gj">{{ m.age }}세 · {{ m.year }}년</div><div class="nt">조건 {{ m.conditions }}개 겹침</div></div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 {% if wolun %}
 <section class="section">
   <div class="shead"><span class="seal">❖</span><span class="n">{{ wolun.year }}년 <b>월운</b> 세부</span><span class="en">Monthly Fortune</span></div>
