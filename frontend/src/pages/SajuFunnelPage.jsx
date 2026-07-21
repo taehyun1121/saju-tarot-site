@@ -228,6 +228,8 @@ export default function SajuFunnelPage({ onSelectTarot }) {
   const [dragX, setDragX] = useState(0)
   const [dragging, setDragging] = useState(false)
   const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
+  const touchAxis = useRef(null)   // 'x' | 'y' | null — 첫 move에서 방향 확정, iOS 세로스크롤과 스와이프 구분용
   const [coachSeen, setCoachSeen] = useState(() => {
     try { return localStorage.getItem('gosam_spo_swipe_coach_seen') === '1' } catch { return true }
   })
@@ -248,14 +250,31 @@ export default function SajuFunnelPage({ onSelectTarot }) {
     if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
   }, [screen])
 
-  const onSpoTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; setDragging(true) }
+  // 🔴 코코 수정(2026-07-21, 실사용자 피드백: 아이폰 세로스크롤 잘 안됨): 기존엔 touchmove가 세로
+  // 스크롤 시도까지 전부 가로드래그로 해석해 dragX를 갱신 → transform이 스크롤과 충돌했음.
+  // 첫 touchmove에서 |dx|·|dy| 비교로 축을 확정, 세로가 더 크면 스와이프 로직 자체를 건너뛰어
+  // 네이티브 스크롤이 그대로 동작하게 함(가로일 때만 dragX 갱신).
+  const onSpoTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+    touchAxis.current = null
+    setDragging(true)
+  }
   const onSpoTouchMove = (e) => {
     const dx = e.touches[0].clientX - touchStartX.current
+    const dy = e.touches[0].clientY - touchStartY.current
+    if (touchAxis.current === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      touchAxis.current = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+    }
+    if (touchAxis.current === 'y') return   // 세로 제스처는 손대지 않음 — 브라우저 기본 스크롤에 맡김
     setDragX(Math.max(-120, Math.min(120, dx)))
   }
   const onSpoTouchEnd = () => {
-    if (dragX <= -60 && screen < 8) go(screen + 1)
-    else if (dragX >= 60 && screen > 3) go(screen - 1)
+    if (touchAxis.current === 'x') {
+      if (dragX <= -60 && screen < 8) go(screen + 1)
+      else if (dragX >= 60 && screen > 3) go(screen - 1)
+    }
+    touchAxis.current = null
     setDragging(false)
     setDragX(0)
   }
