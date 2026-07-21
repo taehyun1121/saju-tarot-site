@@ -192,6 +192,10 @@ def score_curve(p: Pillars, gender, birth_year, daewoon_su=None, age_range=(3, 8
     #    결혼=법적 성인 기준으로 하한을 걸어 필터링. (요청 age_range의 하한과 무관하게 항상 적용)
     LOVE_MIN_AGE = 15
     MARRIAGE_MIN_AGE = 19
+    # 🔴 2026-07-21 사주봇 확인(고령대 피크=67세 연애운 이슈): 상한 컷은 금지 — 노년기 도화도
+    #    '황혼연애·재혼운'으로 다루는 정식 해석 범주라 자르면 진짜 케이스를 놓치는 새 오류가 됨.
+    #    대신 이 나이 이후 피크엔 해석 분기 안내만 덧붙인다(점수·나이 자체는 안 건드림).
+    LATE_AGE_NOTE_THRESHOLD = 45
 
     # ③ 연애운: 도화 발동 + 재성(남명)/관성(여명) 활성 세운 겹치는 해 중 최고점
     love_candidates = []
@@ -206,6 +210,8 @@ def score_curve(p: Pillars, gender, birth_year, daewoon_su=None, age_range=(3, 8
         best_love = max(love_candidates, key=lambda r: r["score"])
         peaks["연애운"] = {"age": best_love["age"], "year": best_love["year"], "score": best_love["score"],
                          "근거": f"도화({doh}) 세운 발동 + 원국점수, 세운{best_love['sewoon']}"}
+        if best_love["age"] >= LATE_AGE_NOTE_THRESHOLD:
+            peaks["연애운"]["주의"] = "고령대 도화 — 재혼/황혼로맨스 또는 기혼시 구설 리스크로 해석 분기 필요, 기혼여부 확인 권장"
     else:
         peaks["연애운"] = {"미확정": f"도화 발동 세운이 {LOVE_MIN_AGE}~83세 범위에 없거나 일지 기준 도화 산출 불가"}
 
@@ -221,6 +227,8 @@ def score_curve(p: Pillars, gender, birth_year, daewoon_su=None, age_range=(3, 8
         best_m = max(marriage_candidates, key=lambda r: r["score"])
         peaks["결혼운"] = {"age": best_m["age"], "year": best_m["year"], "score": best_m["score"],
                          "근거": f"일지합+용신({yongsin_grp}) 겹침, 세운{best_m['sewoon']}"}
+        if best_m["age"] >= LATE_AGE_NOTE_THRESHOLD:
+            peaks["결혼운"]["주의"] = "45세 이후 결혼운 — 재혼 가능성으로 해석 권장"
     else:
         peaks["결혼운"] = {"미확정": f"일지합 세운({MARRIAGE_MIN_AGE}세 이상)과 용신군({yongsin_grp}) 재관 겹치는 해 없음 — 조건 완화 필요 시 별도 재산출"}
 
