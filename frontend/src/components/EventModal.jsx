@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { API } from '../api'
 
 // 오픈이벤트(1+1) 진입 팝업 — 디자인봇 event_modal_pc/mobile.html 이식(2026-07-21).
@@ -13,6 +13,10 @@ export default function EventModal() {
   const [promo, setPromo] = useState(null)
   const [visible, setVisible] = useState(false)
   const [now, setNow] = useState(() => Date.now())
+  // 🔴 코코 수정(2026-07-21, 실사용자 리포트 "끄면 좀 있으면 뜨고"): dismiss()가 localStorage만
+  // 기록하고 이미 예약된 6초 타이머·이탈의도 리스너는 안 지워서, 닫은 뒤에도 그게 나중에 발화해
+  // setVisible(true)를 다시 불러버렸음 — ref로 "닫힘" 상태를 콜백 시점에도 확인하도록 수정.
+  const dismissedRef = useRef(false)
 
   useEffect(() => {
     let alive = true
@@ -25,8 +29,9 @@ export default function EventModal() {
 
   useEffect(() => {
     if (!promo?.active || !promo.ends_at || alreadySeen) return
-    const timer = setTimeout(() => setVisible(true), 6000)
-    const onExitIntent = (e) => { if (e.clientY <= 0) setVisible(true) }
+    const showIfNotDismissed = () => { if (!dismissedRef.current) setVisible(true) }
+    const timer = setTimeout(showIfNotDismissed, 6000)
+    const onExitIntent = (e) => { if (e.clientY <= 0) showIfNotDismissed() }
     document.addEventListener('mouseleave', onExitIntent)
     return () => { clearTimeout(timer); document.removeEventListener('mouseleave', onExitIntent) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -39,6 +44,7 @@ export default function EventModal() {
   }, [visible])
 
   const dismiss = () => {
+    dismissedRef.current = true
     setVisible(false)
     if (seenKey) { try { localStorage.setItem(seenKey, '1') } catch { /* noop */ } }
   }
