@@ -105,7 +105,7 @@ def _build_saju_context(order, data: dict) -> dict:
     overall = data.get("ai_overall") or "지금 이 사주의 흐름을 마음에 새기고, 스스로에게 맞는 선택을 이어가시길 바랍니다."
     closing_body = overall if len(overall) < 200 else (overall[:180].rsplit(".", 1)[0] + ".")
 
-    return {
+    ctx = {
         "user": {"name": order.buyer_name, "birth_text": birth_text, "gender": gender_kr},
         "issued_date": datetime.now(KST).strftime("%Y년 %m월 %d일"),
         "cover_bg_url": _asset_file_url("/static/images/bg_hanji.jpg"),
@@ -124,6 +124,27 @@ def _build_saju_context(order, data: dict) -> dict:
         "luck_peaks": luck_peaks,
         "closing": {"title": "당신의 사주가 전하는 이야기", "body": closing_body},
     }
+
+    # 50페이지 확장(2026-07-21 주인 지시) — 대운전체/십성10개/세운연도별/격국상세.
+    # 신살·12운성·형충회합파는 정확한 참조표 확보 전까지 보류(지어내기 금지).
+    try:
+        from saju_narrative import extended_report_sections
+        from saju_rule_engine import Pillars as _EP
+        y, m, d_, h_ = pillars.get("year"), pillars.get("month"), pillars.get("day"), pillars.get("hour")
+        if y and m and d_ and birth.get("year"):
+            engine_pillars = _EP(
+                (y["korean"][0], y["korean"][1]), (m["korean"][0], m["korean"][1]),
+                (d_["korean"][0], d_["korean"][1]),
+                (h_["korean"][0], h_["korean"][1]) if h_ else None,
+            )
+            ext = extended_report_sections(engine_pillars, data.get("daeun") or [],
+                                            birth.get("gender", "여"), int(birth["year"]))
+            ctx.update(ext)
+            ctx["has_hour"] = bool(h_)
+    except Exception as e:
+        print(f"[report ext] 확장섹션 생성 실패: {e}")
+
+    return ctx
 
 
 def _build_tarot_context(order, data: dict) -> dict:

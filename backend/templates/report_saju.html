@@ -88,6 +88,23 @@ h1,h2,h3{margin:0;}
 .peak .sc{font-weight:900;font-size:11pt;color:var(--gold);}
 .peak .rs{font-weight:400;font-size:10pt;color:#d3d8e6;}
 
+/* ===== 확장(50p) — 대운전체/십성10개/격국상세/세운표 ===== */
+.dwgrid{display:grid;grid-template-columns:1fr 1fr;gap:3mm;}
+.dwcard{background:linear-gradient(180deg,var(--paper2),#0b1120);border:1px solid rgba(212,175,55,.2);border-radius:3mm;
+  padding:3.5mm 4mm;page-break-inside:avoid;}
+.dwcard .rg{font-weight:700;font-size:9.5pt;color:var(--gold);} .dwcard .gj{font-weight:900;font-size:12pt;color:#f7ecd6;margin:1mm 0;}
+.dwcard .nt{font-weight:400;font-size:9pt;color:var(--muted);}
+.ssgrid{display:grid;grid-template-columns:1fr 1fr;gap:3mm;}
+.sscard{background:rgba(42,82,181,.08);border:1px solid rgba(212,175,55,.18);border-left:3px solid var(--gold2);border-radius:2.5mm;
+  padding:3mm 4mm;page-break-inside:avoid;}
+.sscard .hd{display:flex;justify-content:space-between;align-items:baseline;}
+.sscard .nm{font-weight:900;font-size:11.5pt;color:#f7ecd6;} .sscard .ct{font-weight:900;font-size:11pt;color:var(--gold);}
+.sscard .mn{font-weight:400;font-size:8.8pt;color:var(--muted);margin-top:1mm;}
+.seuntable{width:100%;border-collapse:collapse;font-size:8.5pt;}
+.seuntable th{text-align:left;color:var(--gold);font-weight:700;border-bottom:1px solid rgba(212,175,55,.3);padding:2mm 2mm;}
+.seuntable td{color:#d3d8e6;padding:1.6mm 2mm;border-bottom:1px solid rgba(255,255,255,.06);}
+.seuntable tr:nth-child(even) td{background:rgba(255,255,255,.02);}
+
 /* ===== 마무리 ===== */
 .closing{margin-top:9mm;text-align:center;page-break-inside:avoid;padding:7mm 6mm;border:1px solid rgba(212,175,55,.28);border-radius:4mm;
   background:radial-gradient(ellipse at 50% 0%,rgba(42,82,181,.16),transparent 70%);}
@@ -163,6 +180,50 @@ h1,h2,h3{margin:0;}
     {% endfor %}
   </div>
 </section>
+
+{% if full_daeun %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">평생 <b>대운</b> 전체 흐름</span><span class="en">All Daeun Periods</span></div>
+  <div class="lead">태어나서부터 이어지는 대운 전 구간입니다. 10년마다 삶의 배경 기운이 바뀝니다.</div>
+  <div class="dwgrid">
+    {% for d in full_daeun %}
+    <div class="dwcard"><div class="rg">{{ d.range }}</div><div class="gj">{{ d.ganji }}</div><div class="nt">{{ d.note }}</div></div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if sipseong_full %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">십성 <b>10개</b> 전체 분포</span><span class="en">Ten Gods</span></div>
+  <div class="lead">원국 전체(년월일시 천간·지지)에 나타난 열 가지 기운의 개수입니다.</div>
+  <div class="ssgrid">
+    {% for s in sipseong_full %}
+    <div class="sscard"><div class="hd"><span class="nm">{{ s.name }}</span><span class="ct">{{ s.count }}개</span></div><div class="mn">{{ s.meaning }}</div></div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if gyeok_detail %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">격국 <b>성립 근거</b></span><span class="en">Structure Detail</span></div>
+  <div class="flow"><p>{{ gyeok_detail }}</p></div>
+</section>
+{% endif %}
+
+{% if seun_table %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">세운 <b>연도별</b> 전체</span><span class="en">Yearly Fortune</span></div>
+  <div class="lead">3세부터 83세까지, 해마다의 세운 간지와 점수입니다.</div>
+  <table class="seuntable">
+    <tr><th>나이</th><th>연도</th><th>세운</th><th>점수</th></tr>
+    {% for r in seun_table %}
+    <tr><td>{{ r.age }}세</td><td>{{ r.year }}</td><td>{{ r.ganji }}</td><td>{{ r.score }}</td></tr>
+    {% endfor %}
+  </table>
+</section>
+{% endif %}
 
 <!-- ===== 마무리 ===== -->
 <section class="closing">
