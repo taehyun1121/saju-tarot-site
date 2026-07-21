@@ -100,16 +100,25 @@ h1,h2,h3{margin:0;}
 .sscard .hd{display:flex;justify-content:space-between;align-items:baseline;}
 .sscard .nm{font-weight:900;font-size:11.5pt;color:#f7ecd6;} .sscard .ct{font-weight:900;font-size:11pt;color:var(--gold);}
 .sscard .mn{font-weight:400;font-size:8.8pt;color:var(--muted);margin-top:1mm;}
-.seuntable{width:100%;border-collapse:collapse;font-size:8.5pt;}
-.seuntable th{text-align:left;color:var(--gold);font-weight:700;border-bottom:1px solid rgba(212,175,55,.3);padding:2mm 2mm;}
-.seuntable td{color:#d3d8e6;padding:1.6mm 2mm;border-bottom:1px solid rgba(255,255,255,.06);}
-.seuntable tr:nth-child(even) td{background:rgba(255,255,255,.02);}
+.seunrow{display:flex;align-items:center;gap:3mm;padding:1.8mm 2mm;border-bottom:1px solid rgba(255,255,255,.06);page-break-inside:avoid;}
+.seunrow:nth-child(even){background:rgba(255,255,255,.02);}
+.seunrow .yr{flex:none;width:22mm;font-weight:700;font-size:8.3pt;color:var(--muted);}
+.seunrow .yr b{color:#e3e7f2;} .seunrow .gj{flex:none;width:14mm;font-weight:700;font-size:8.3pt;color:var(--gold2);}
+.seunrow .barwrap{display:block;flex:none;width:26mm;height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;}
+.seunrow .barwrap i{display:block;width:0;height:5px;border-radius:99px;}
+.seunrow .sc{flex:none;width:8mm;font-weight:900;font-size:8.3pt;color:var(--gold);text-align:right;}
+.seunrow .ol{flex:1;font-weight:400;font-size:8pt;color:#a9b0c8;}
 .stagegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm;}
 .stagecard{background:rgba(42,82,181,.08);border:1px solid rgba(212,175,55,.18);border-radius:2.5mm;padding:2.8mm 3mm;text-align:center;page-break-inside:avoid;}
 .stagecard .lb{font-weight:700;font-size:8pt;color:var(--muted);} .stagecard .st{font-weight:900;font-size:11.5pt;color:var(--gold);margin:1mm 0;}
 .stagecard .mn{font-weight:400;font-size:7.8pt;color:#c7cde0;}
 .relbox{background:var(--paper2);border:1px solid rgba(212,175,55,.2);border-radius:3mm;padding:4mm 5mm;font-size:9.5pt;color:#d3d8e6;}
 .relbox .tag{display:inline-block;background:rgba(227,192,105,.14);color:var(--gold);border-radius:999px;padding:1mm 3mm;margin:0 2mm 2mm 0;font-weight:700;font-size:8.5pt;}
+.wolungrid{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;}
+.wolcard{background:linear-gradient(180deg,var(--paper2),#0b1120);border:1px solid rgba(212,175,55,.2);border-radius:2.8mm;padding:3.2mm 3.5mm;page-break-inside:avoid;}
+.wolcard .mo{font-weight:700;font-size:9pt;color:var(--gold);} .wolcard .gj{font-weight:900;font-size:11.5pt;color:#f7ecd6;margin:1mm 0;}
+.wolcard .ol{font-weight:400;font-size:8.3pt;color:var(--muted);}
+.disclaimer{margin-top:3mm;font-size:8pt;color:#9099b8;background:rgba(255,255,255,.03);border-left:2px solid var(--muted);padding:2.5mm 3.5mm;border-radius:0 2mm 2mm 0;}
 
 /* ===== 마무리 ===== */
 .closing{margin-top:9mm;text-align:center;page-break-inside:avoid;padding:7mm 6mm;border:1px solid rgba(212,175,55,.28);border-radius:4mm;
@@ -199,6 +208,14 @@ h1,h2,h3{margin:0;}
 </section>
 {% endif %}
 
+{% if oheng_svg %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">오행 <b>균형</b></span><span class="en">Five Elements Radar</span></div>
+  <div class="lead">목화토금수 다섯 기운이 원국에 얼마나 분포하는지입니다.</div>
+  <div style="text-align:center;padding:2mm 0;">{{ oheng_svg|safe }}</div>
+</section>
+{% endif %}
+
 {% if sipseong_full %}
 <section class="section">
   <div class="shead"><span class="seal">❖</span><span class="n">십성 <b>10개</b> 전체 분포</span><span class="en">Ten Gods</span></div>
@@ -252,16 +269,57 @@ h1,h2,h3{margin:0;}
 </section>
 {% endif %}
 
+{% if curve_svg %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">인생 <b>그래프</b></span><span class="en">Life Curve</span></div>
+  <div class="lead">3세부터 83세까지 운의 흐름을 한눈에 — 초록점이 최고조, 빨간점이 최저조입니다.</div>
+  <div style="text-align:center;">{{ curve_svg|safe }}</div>
+</section>
+{% endif %}
+
 {% if seun_table %}
 <section class="section">
   <div class="shead"><span class="seal">❖</span><span class="n">세운 <b>연도별</b> 전체</span><span class="en">Yearly Fortune</span></div>
-  <div class="lead">3세부터 83세까지, 해마다의 세운 간지와 점수입니다.</div>
-  <table class="seuntable">
-    <tr><th>나이</th><th>연도</th><th>세운</th><th>점수</th></tr>
+  <div class="lead">3세부터 83세까지, 해마다의 세운 흐름을 막대그래프로 보여드립니다.</div>
+  <div>
     {% for r in seun_table %}
-    <tr><td>{{ r.age }}세</td><td>{{ r.year }}</td><td>{{ r.ganji }}</td><td>{{ r.score }}</td></tr>
+    <div class="seunrow">
+      <span class="yr"><b>{{ r.age }}세</b> · {{ r.year }}</span>
+      <span class="gj">{{ r.ganji }}</span>
+      <span class="barwrap"><i style="width:{{ r.score }}%;background:{% if r.score >= 75 %}linear-gradient(90deg,var(--cobalt),var(--ok)){% elif r.score >= 55 %}linear-gradient(90deg,var(--cobalt),var(--gold)){% elif r.score >= 35 %}var(--gold2){% else %}var(--red){% endif %}"></i></span>
+      <span class="sc">{{ r.score }}</span>
+      <span class="ol">{{ r.one_line }}</span>
+    </div>
     {% endfor %}
-  </table>
+  </div>
+</section>
+{% endif %}
+
+{% if good_love_runs or care_love_runs %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">연애 인연 — <b>좋은 인연 vs 주의 인연</b></span><span class="en">Relationship Windows</span></div>
+  <div class="lead">사주봇 외부검증 기준(여명=정관/편관, 남명=정재/편재)으로 나눈 시기입니다.</div>
+  <div class="ssgrid">
+    {% for r in good_love_runs %}
+    <div class="sscard" style="border-left-color:var(--ok);"><div class="hd"><span class="nm">💚 좋은 인연 시기</span><span class="ct">{{ r.years }}년 연속</span></div><div class="mn">{{ r.start_age }}~{{ r.end_age }}세 ({{ r.start_year }}~{{ r.end_year }}년)</div></div>
+    {% endfor %}
+    {% for r in care_love_runs %}
+    <div class="sscard" style="border-left-color:var(--red);"><div class="hd"><span class="nm">⚠ 주의 인연 시기</span><span class="ct">{{ r.years }}년 연속</span></div><div class="mn">{{ r.start_age }}~{{ r.end_age }}세 ({{ r.start_year }}~{{ r.end_year }}년)</div></div>
+    {% endfor %}
+  </div>
+  <div class="disclaimer">⚠ 이 기간은 "인연이 나타나기 좋은 시기의 길이"이지, 관계 자체의 지속기간을 예측하는 것이 아닙니다. 실제 관계 지속은 상대방 사주와의 궁합에 따라 달라집니다.</div>
+</section>
+{% endif %}
+
+{% if wolun %}
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">{{ wolun.year }}년 <b>월운</b> 세부</span><span class="en">Monthly Fortune</span></div>
+  <div class="wolungrid">
+    {% for w in wolun.months %}
+    <div class="wolcard"><div class="mo">{{ w.month }}</div><div class="gj">{{ w.ganji }}</div><div class="ol">{{ w.one_line }}</div></div>
+    {% endfor %}
+  </div>
+  <div class="disclaimer">⚠ {{ wolun.disclaimer }}</div>
 </section>
 {% endif %}
 
