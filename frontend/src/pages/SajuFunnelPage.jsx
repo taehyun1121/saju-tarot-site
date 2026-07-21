@@ -206,6 +206,16 @@ export default function SajuFunnelPage({ onSelectTarot }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [orderOpen, setOrderOpen] = useState(false)
+  // 🔴 코코 추가(2026-07-21, 형 지시): 년(4자리)→월(2자리)→일(2자리) 채우면 자동으로 다음 칸 포커스.
+  // isDesktop에 따라 PC/모바일 중 하나만 마운트되므로 ref 공유해도 충돌 없음.
+  const monthInputRef = useRef(null)
+  const dayInputRef = useRef(null)
+  const hourInputRef = useRef(null)
+  const onDateFieldChange = (field, maxLen, nextRef) => (e) => {
+    const v = e.target.value
+    setForm(f => ({ ...f, [field]: v }))
+    if (v.length >= maxLen && nextRef?.current) nextRef.current.focus()
+  }
 
   const go = (n) => setScreen(Math.max(0, Math.min(9, n)))
   const specs = sajuResult ? spoSpecs(sajuResult) : spoSpecs(null)
@@ -347,13 +357,13 @@ export default function SajuFunnelPage({ onSelectTarot }) {
             <div className="panel">
               <div className="field"><label>태어난 날</label>
                 <div className="row2">
-                  <input className="inp" placeholder="년(YYYY)" value={form.year} onChange={e => setForm({ ...form, year: e.target.value })} />
-                  <input className="inp" placeholder="월" value={form.month} onChange={e => setForm({ ...form, month: e.target.value })} />
-                  <input className="inp" placeholder="일" value={form.day} onChange={e => setForm({ ...form, day: e.target.value })} />
+                  <input className="inp" placeholder="년(YYYY)" value={form.year} maxLength={4} onChange={onDateFieldChange('year', 4, monthInputRef)} />
+                  <input ref={monthInputRef} className="inp" placeholder="월" value={form.month} maxLength={2} onChange={onDateFieldChange('month', 2, dayInputRef)} />
+                  <input ref={dayInputRef} className="inp" placeholder="일" value={form.day} maxLength={2} onChange={onDateFieldChange('day', 2, hourInputRef)} />
                 </div>
               </div>
               <div className="field"><label>태어난 시간 (모르면 비워두세요)</label>
-                <input className="inp" placeholder="예) 14 (24시간제, 모르면 비움)" value={form.hour} onChange={e => setForm({ ...form, hour: e.target.value })} />
+                <input ref={hourInputRef} className="inp" placeholder="예) 14 (24시간제, 모르면 비움)" value={form.hour} onChange={e => setForm({ ...form, hour: e.target.value })} />
               </div>
               <div className="field"><label>성별</label>
                 <select className="inp" value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })}>
@@ -485,13 +495,13 @@ export default function SajuFunnelPage({ onSelectTarot }) {
               <div className="hdesc">거짓 없이 적으셔야, 신이 바로 읽습니다.</div>
               <div className="field"><label>태어난 날</label>
                 <div className="row2">
-                  <input className="inp" placeholder="년(YYYY)" value={form.year} onChange={e => setForm({ ...form, year: e.target.value })} />
-                  <input className="inp" placeholder="월" value={form.month} onChange={e => setForm({ ...form, month: e.target.value })} />
-                  <input className="inp" placeholder="일" value={form.day} onChange={e => setForm({ ...form, day: e.target.value })} />
+                  <input className="inp" placeholder="년(YYYY)" value={form.year} maxLength={4} onChange={onDateFieldChange('year', 4, monthInputRef)} />
+                  <input ref={monthInputRef} className="inp" placeholder="월" value={form.month} maxLength={2} onChange={onDateFieldChange('month', 2, dayInputRef)} />
+                  <input ref={dayInputRef} className="inp" placeholder="일" value={form.day} maxLength={2} onChange={onDateFieldChange('day', 2, hourInputRef)} />
                 </div>
               </div>
               <div className="field"><label>태어난 시간 (모르면 비워두세요)</label>
-                <input className="inp" placeholder="예) 14 (24시간제, 모르면 비움)" value={form.hour} onChange={e => setForm({ ...form, hour: e.target.value })} />
+                <input ref={hourInputRef} className="inp" placeholder="예) 14 (24시간제, 모르면 비움)" value={form.hour} onChange={e => setForm({ ...form, hour: e.target.value })} />
               </div>
               <div className="field"><label>성별</label>
                 <select className="inp" value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })}>
