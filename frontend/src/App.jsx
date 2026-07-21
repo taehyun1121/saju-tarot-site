@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import SajuPage from './pages/SajuPage'
 import TarotPage from './pages/TarotPage'
 import HistoryPage from './pages/HistoryPage'
@@ -18,6 +19,10 @@ function FunnelApp() {
 }
 
 export default function App() {
+  const isPrivacy = (() => {
+    try { return new URLSearchParams(window.location.search).has('privacy') } catch { return false }
+  })()
+  if (isPrivacy) return <PrivacyPolicyPage />
   const isLegacy = (() => {
     try { return new URLSearchParams(window.location.search).has('legacy') } catch { return false }
   })()

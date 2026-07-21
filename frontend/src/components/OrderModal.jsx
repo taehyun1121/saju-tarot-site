@@ -108,6 +108,11 @@ export default function OrderModal({ open, onClose, productKey, amount, productN
               <button className="paymodal-cta" disabled={loading} onClick={submitOrder}>
                 {loading ? '계좌 안내 준비 중…' : '계좌 안내받기'}
               </button>
+              <div style={{ textAlign: 'center', marginTop: 10 }}>
+                <a href="/?privacy" target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--muted)' }}>
+                  개인정보처리방침 보기
+                </a>
+              </div>
             </div>
           </>
         )}

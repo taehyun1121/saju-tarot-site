@@ -124,6 +124,54 @@ def _ensure_columns():
 
 _ensure_columns()
 
+# ── 개인정보 보유기간(1년) 자동 파기 ────────────────────────────
+# 개인정보처리방침(2026-07-21 확정, /?privacy): 개인식별정보는 수집 1년 후 삭제.
+# 단 전자상거래법상 거래기록(주문번호·상품·금액·상태·일시)은 5년 별도보관 의무라
+# 그 필드들은 안 건드리고, 식별 가능한 필드만 비운다.
+RETENTION_DAYS = 365
+_PII_FIELDS = ["buyer_name", "contact", "question", "reading_data", "matched_tx", "code"]
+
+
+def _scrub_expired_orders(db):
+    cutoff = now_kst() - timedelta(days=RETENTION_DAYS)
+    cutoff_naive = cutoff.replace(tzinfo=None)
+    expired = (
+        db.query(Order)
+        .filter(Order.buyer_name != "")
+        .all()
+    )
+    scrubbed = 0
+    for order in expired:
+        created = order.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=None)
+            is_expired = created < cutoff_naive
+        else:
+            is_expired = created < cutoff
+        if not is_expired:
+            continue
+        for f in _PII_FIELDS:
+            setattr(order, f, "")
+        scrubbed += 1
+    if scrubbed:
+        db.commit()
+        print(f"[retention] 1년 경과 개인정보 {scrubbed}건 파기")
+    return scrubbed
+
+
+def _retention_loop():
+    import time
+    while True:
+        try:
+            with SessionLocal() as db:
+                _scrub_expired_orders(db)
+        except Exception as e:
+            print(f"[retention] 파기 작업 실패: {e}")
+        time.sleep(24 * 60 * 60)   # 24시간마다
+
+
+threading.Thread(target=_retention_loop, daemon=True).start()
+
 # ── 상품 ─────────────────────────────────────────────────────
 PRODUCTS = {
     "single": {"name": "집중 심층 리포트", "amount": 15000,
