@@ -214,6 +214,15 @@ export default function SajuFunnelPage({ onSelectTarot }) {
   const radar = sajuResult?.radar || null
   const life = sajuResult?.life || null
   const sw = strongWeakOhaeng(ohaeng)
+  const warnPct = life?.warn_x ? ((parseFloat(life.right_x) - parseFloat(life.warn_x)) / life.W) * 100 : 0
+  // 디자인봇 권고(2026-07-21): 4운 스와이프 + 오행/인생그래프 티저를 인터랙션 통일 — 6장을 한 스와이프 시퀀스로.
+  const navItems = [...specs, { ico: '☯', badge: '오행' }, { ico: '📈', badge: '인생그래프' }]
+  const spoNextLabel = (screen) => {
+    if (screen < 6) return '다음 운세 ›'
+    if (screen === 6) return '타고난 기운 보기 ›'
+    if (screen === 7) return '인생그래프 보기 ›'
+    return '전체 결과 보기 ›'
+  }
 
   // 모바일 스포화면 swipe 제스처 + 최초 1회 코치마크 — 출처: 디자인봇 gate:spo_nav 목업(spo_nav_mobile.html)
   const [dragX, setDragX] = useState(0)
@@ -245,7 +254,7 @@ export default function SajuFunnelPage({ onSelectTarot }) {
     setDragX(Math.max(-120, Math.min(120, dx)))
   }
   const onSpoTouchEnd = () => {
-    if (dragX <= -60 && screen < 6) go(screen + 1)
+    if (dragX <= -60 && screen < 8) go(screen + 1)
     else if (dragX >= 60 && screen > 3) go(screen - 1)
     setDragging(false)
     setDragX(0)
@@ -345,90 +354,58 @@ export default function SajuFunnelPage({ onSelectTarot }) {
         </div>
       )
     }
-    if (screen >= 3 && screen <= 6) {
-      const spec = specs[screen - 3]
+    if (screen >= 3 && screen <= 8) {
+      const spec = screen <= 6 ? specs[screen - 3] : null
       return (
         <div className="funnel-root">
           <PcWide onBack={() => go(2)} center onPrev={() => go(screen - 1)} onNext={() => go(screen + 1)}
             prevDisabled={screen === 3} nextDisabled={false}>
             <div className="spo">
               <div className="graphbox">
-                <span className="spobadge">{spec.ico} {spec.badge}</span>
-                <Graph pts={spec.pts} peakX={spec.peakX} color={spec.color} />
-                <div className="spoyrs">{spec.yrs.map(y => <span key={y}>{y}</span>)}</div>
-                <div className="spoline serif"><span className="hl">{spec.hl}</span> {spec.rest}</div>
+                {spec && <>
+                  <span className="spobadge">{spec.ico} {spec.badge}</span>
+                  <Graph pts={spec.pts} peakX={spec.peakX} color={spec.color} />
+                  <div className="spoyrs">{spec.yrs.map(y => <span key={y}>{y}</span>)}</div>
+                  <div className="spoline serif"><span className="hl">{spec.hl}</span> {spec.rest}</div>
+                </>}
+                {screen === 7 && <>
+                  <span className="spobadge">☯ 오행 · 타고난 기운</span>
+                  {radar ? <div className="radar-mini">
+                    <OhaengRadarSvg radar={radar} />
+                    <div className="oh-legend">{ohaeng.map(o => (
+                      <span key={o.key} className="oh-l"><span className={`oh-d bg-${o.key}`} /><span className={`cl-${o.key}`}>{o.label}</span> {o.count}</span>
+                    ))}</div>
+                  </div> : <div className="spoline serif">오행 데이터를 불러오지 못했습니다</div>}
+                  {sw && <div className="spoline serif">가장 강한 기운은 <span className="hl">{sw.strong.label}</span>, {sw.strong.count}개입니다.</div>}
+                </>}
+                {screen === 8 && <>
+                  <span className="spobadge">📈 인생그래프 · 운의 정점</span>
+                  {life ? <div style={{ position: 'relative' }}>
+                    <LifeGraphSvg life={life} />
+                    {life.warn_x && <div className="life-lock" style={{ width: `${warnPct}%` }}><span className="lk">🔒</span>45세<br />이후</div>}
+                  </div> : <div className="spoline serif">인생그래프 데이터를 불러오지 못했습니다</div>}
+                  <div className="spoline serif">인생의 정점은 <Rd>▓▓세</Rd>에 옵니다.</div>
+                </>}
               </div>
-              <div className="reading">{spec.reading}
-                <div className="lock">🔒 가려진 핵심(연도·달·상대·액수)은 신당 안에서 다 보여드립니다</div>
+              <div className="reading">
+                {spec && spec.reading}
+                {screen === 7 && sw && <>{OHAENG_HANJA[sw.strong.key]}({sw.strong.label})이 가장 세고, {sw.weak.count === 0 ? <><Rd>▓</Rd>의 기운은 비어 있습니다.</> : <>{sw.weak.label}의 기운이 가장 약합니다.</>} 이 치우침이 당신의 <Rd>▓▓</Rd>과 <Rd>▓▓▓</Rd>을 좌우합니다. 비어 있는 기운을 채우는 방법은 따로 있습니다.</>}
+                {screen === 8 && <>가장 높이 오르는 해와 가장 낮게 가라앉는 해는 <Rd>▓▓년</Rd> 안에 갈립니다. 그 사이 반드시 지나야 할 <Rd>▓▓</Rd>이 있고, 45세 이후 <Rd>▓▓▓</Rd>을 특히 조심하셔야 합니다.</>}
+                <div className="lock">{screen <= 6 ? '🔒 가려진 핵심(연도·달·상대·액수)은 신당 안에서 다 보여드립니다' : screen === 7 ? '🔒 비어 있는 기운과 채우는 법은 신당 안에서 다 보여드립니다' : '🔒 정점의 정확한 나이·점수와 그 이유는 신당 안에서'}</div>
               </div>
             </div>
             <div className="sponavbar">
               <button className="sponavbtn prev" disabled={screen === 3} onClick={() => go(screen - 1)}>‹ 이전</button>
               <div className="sposegs">
-                {specs.map((s, i) => (
+                {navItems.map((s, i) => (
                   <button key={s.badge} className={`sposeg${i === screen - 3 ? ' active' : i < screen - 3 ? ' done' : ''}`} onClick={() => go(3 + i)}>
                     <span className="ic">{s.ico}</span>{s.badge}
                   </button>
                 ))}
               </div>
-              <button className="sponavbtn next" onClick={() => go(screen + 1)}>{screen < 6 ? '다음 운세 ›' : '타고난 기운 보기 ›'}</button>
+              <button className="sponavbtn next" onClick={() => go(screen + 1)}>{spoNextLabel(screen)}</button>
             </div>
             <div className="navhint">키보드 ← → · 마우스 휠 · 위 칩 클릭 — 어느 방법으로도 넘기실 수 있습니다</div>
-          </PcWide>
-        </div>
-      )
-    }
-    if (screen === 7) {
-      return (
-        <div className="funnel-root">
-          <PcWide onBack={() => go(6)} center onPrev={() => go(6)} onNext={() => go(8)}>
-            <div className="spo">
-              <div className="graphbox">
-                <span className="spobadge">☯ 오행 · 타고난 기운</span>
-                {radar ? <div className="radar-mini">
-                  <OhaengRadarSvg radar={radar} />
-                  <div className="oh-legend">{ohaeng.map(o => (
-                    <span key={o.key} className="oh-l"><span className={`oh-d bg-${o.key}`} /><span className={`cl-${o.key}`}>{o.label}</span> {o.count}</span>
-                  ))}</div>
-                </div> : <div className="spoline serif">오행 데이터를 불러오지 못했습니다</div>}
-                {sw && <div className="spoline serif">가장 강한 기운은 <span className="hl">{sw.strong.label}</span>, {sw.strong.count}개입니다.</div>}
-              </div>
-              <div className="reading">
-                {sw && <>{OHAENG_HANJA[sw.strong.key]}({sw.strong.label})이 가장 세고, {sw.weak.count === 0 ? <><Rd>▓</Rd>의 기운은 비어 있습니다.</> : <>{sw.weak.label}의 기운이 가장 약합니다.</>} 이 치우침이 당신의 <Rd>▓▓</Rd>과 <Rd>▓▓▓</Rd>을 좌우합니다. 비어 있는 기운을 채우는 방법은 따로 있습니다.</>}
-                <div className="lock">🔒 비어 있는 기운과 채우는 법은 신당 안에서 다 보여드립니다</div>
-              </div>
-            </div>
-            <div className="sponavbar">
-              <button className="sponavbtn prev" onClick={() => go(6)}>‹ 이전</button>
-              <button className="sponavbtn next" onClick={() => go(8)}>인생그래프 보기 ›</button>
-            </div>
-          </PcWide>
-        </div>
-      )
-    }
-    if (screen === 8) {
-      const warnPct = life?.warn_x ? ((parseFloat(life.right_x) - parseFloat(life.warn_x)) / life.W) * 100 : 0
-      return (
-        <div className="funnel-root">
-          <PcWide onBack={() => go(7)} center onPrev={() => go(7)} onNext={() => go(9)}>
-            <div className="spo">
-              <div className="graphbox">
-                <span className="spobadge">📈 인생그래프 · 운의 정점</span>
-                {life ? <div style={{ position: 'relative' }}>
-                  <LifeGraphSvg life={life} />
-                  {life.warn_x && <div className="life-lock" style={{ width: `${warnPct}%` }}><span className="lk">🔒</span>45세<br />이후</div>}
-                </div> : <div className="spoline serif">인생그래프 데이터를 불러오지 못했습니다</div>}
-                <div className="spoline serif">인생의 정점은 <Rd>▓▓세</Rd>에 옵니다.</div>
-              </div>
-              <div className="reading">
-                가장 높이 오르는 해와 가장 낮게 가라앉는 해는 <Rd>▓▓년</Rd> 안에 갈립니다. 그 사이 반드시 지나야 할 <Rd>▓▓</Rd>이 있고, 45세 이후 <Rd>▓▓▓</Rd>을 특히 조심하셔야 합니다.
-                <div className="lock">🔒 정점의 정확한 나이·점수와 그 이유는 신당 안에서</div>
-              </div>
-            </div>
-            <div className="sponavbar">
-              <button className="sponavbtn prev" onClick={() => go(7)}>‹ 이전</button>
-              <button className="sponavbtn next" onClick={() => go(9)}>전체 결과 보기 ›</button>
-            </div>
           </PcWide>
         </div>
       )
@@ -516,8 +493,8 @@ export default function SajuFunnelPage({ onSelectTarot }) {
           </>
         )}
 
-        {screen >= 3 && screen <= 6 && (() => {
-          const spec = specs[screen - 3]
+        {screen >= 3 && screen <= 8 && (() => {
+          const spec = screen <= 6 ? specs[screen - 3] : null
           const idx = screen - 3
           return (
             <>
@@ -535,17 +512,45 @@ export default function SajuFunnelPage({ onSelectTarot }) {
                   onTouchMove={onSpoTouchMove}
                   onTouchEnd={onSpoTouchEnd}
                 >
-                  <span className="spobadge">{spec.ico} {spec.badge}</span>
-                  <div className="graph"><Graph pts={spec.pts} peakX={spec.peakX} color={spec.color} />
-                    <div className="yrs">{spec.yrs.map(y => <span key={y}>{y}</span>)}</div>
-                  </div>
-                  <div className="spoline"><span className="hl">{spec.hl}</span> {spec.rest}</div>
-                  <div className="reading">{spec.reading}</div>
-                  <div className="lockline">🔒 ▓ 가려진 핵심(연도·달·상대·액수)은 신당 안에서 다 보여드립니다</div>
-                  {dragX < -8 && screen < 6 && <div className="nextpeek" />}
+                  {spec && <>
+                    <span className="spobadge">{spec.ico} {spec.badge}</span>
+                    <div className="graph"><Graph pts={spec.pts} peakX={spec.peakX} color={spec.color} />
+                      <div className="yrs">{spec.yrs.map(y => <span key={y}>{y}</span>)}</div>
+                    </div>
+                    <div className="spoline"><span className="hl">{spec.hl}</span> {spec.rest}</div>
+                    <div className="reading">{spec.reading}</div>
+                    <div className="lockline">🔒 ▓ 가려진 핵심(연도·달·상대·액수)은 신당 안에서 다 보여드립니다</div>
+                  </>}
+                  {screen === 7 && <>
+                    <span className="spobadge">☯ 오행 · 타고난 기운</span>
+                    {radar ? <div className="graph"><div className="radar-mini">
+                      <OhaengRadarSvg radar={radar} />
+                      <div className="oh-legend">{ohaeng.map(o => (
+                        <span key={o.key} className="oh-l"><span className={`oh-d bg-${o.key}`} /><span className={`cl-${o.key}`}>{o.label}</span> {o.count}</span>
+                      ))}</div>
+                    </div></div> : <div className="reading">오행 데이터를 불러오지 못했습니다.</div>}
+                    {sw && <div className="spoline">가장 강한 기운은 <span className="hl">{sw.strong.label}</span>, {sw.strong.count}개입니다.</div>}
+                    {sw && (
+                      <div className="reading">
+                        {OHAENG_HANJA[sw.strong.key]}({sw.strong.label})이 가장 세고, {sw.weak.count === 0 ? <><Rd>▓</Rd>의 기운은 비어 있습니다.</> : <>{sw.weak.label}의 기운이 가장 약합니다.</>} 이 치우침이 당신의 <Rd>▓▓</Rd>과 <Rd>▓▓▓</Rd>을 좌우합니다. 비어 있는 기운을 채우는 방법은 따로 있습니다.
+                      </div>
+                    )}
+                    <div className="lockline">🔒 비어 있는 기운과 채우는 법은 신당 안에서 다 보여드립니다</div>
+                  </>}
+                  {screen === 8 && <>
+                    <span className="spobadge">📈 인생그래프 · 운의 정점</span>
+                    {life ? <div className="graph" style={{ position: 'relative' }}>
+                      <LifeGraphSvg life={life} />
+                      {life.warn_x && <div className="life-lock" style={{ width: `${warnPct}%` }}><span className="lk">🔒</span>45세<br />이후</div>}
+                    </div> : <div className="reading">인생그래프 데이터를 불러오지 못했습니다.</div>}
+                    <div className="spoline">인생의 정점은 <Rd>▓▓세</Rd>에 옵니다.</div>
+                    <div className="reading">가장 높이 오르는 해와 가장 낮게 가라앉는 해는 <Rd>▓▓년</Rd> 안에 갈립니다. 그 사이 반드시 지나야 할 <Rd>▓▓</Rd>이 있고, 45세 이후 <Rd>▓▓▓</Rd>을 특히 조심하셔야 합니다.</div>
+                    <div className="lockline">🔒 정점의 정확한 나이·점수와 그 이유는 신당 안에서</div>
+                  </>}
+                  {dragX < -8 && screen < 8 && <div className="nextpeek" />}
                 </div>
                 <div className="spochipbar" ref={chipbarRef}>
-                  {specs.map((s, i) => (
+                  {navItems.map((s, i) => (
                     <button key={s.badge} className={`spochip${i === idx ? ' active' : i < idx ? ' done' : ''}`} onClick={() => go(3 + i)}>
                       {s.ico} {s.badge}
                     </button>
@@ -553,7 +558,7 @@ export default function SajuFunnelPage({ onSelectTarot }) {
                 </div>
                 <div className="spomnav">
                   <button className="spomprev" disabled={screen === 3} onClick={() => go(screen - 1)}>‹</button>
-                  <button className="spomnext" onClick={() => go(screen + 1)}>{screen < 6 ? '다음 운세 ›' : '타고난 기운 보기 ›'}</button>
+                  <button className="spomnext" onClick={() => go(screen + 1)}>{spoNextLabel(screen)}</button>
                 </div>
               </div>
               {screen === 3 && !coachSeen && (
@@ -565,59 +570,6 @@ export default function SajuFunnelPage({ onSelectTarot }) {
                 </div>
               )}
             </>
-          )
-        })()}
-
-        {screen === 7 && (
-          <>
-            <div className="stage" /><div className="texture" /><div className="ambient" />
-            <Top onBack={() => go(6)} />
-            <div className="frameborder" />
-            <div className="content">
-              <span className="spobadge">☯ 오행 · 타고난 기운</span>
-              {radar ? <div className="graph"><div className="radar-mini">
-                <OhaengRadarSvg radar={radar} />
-                <div className="oh-legend">{ohaeng.map(o => (
-                  <span key={o.key} className="oh-l"><span className={`oh-d bg-${o.key}`} /><span className={`cl-${o.key}`}>{o.label}</span> {o.count}</span>
-                ))}</div>
-              </div></div> : <div className="reading">오행 데이터를 불러오지 못했습니다.</div>}
-              {sw && <div className="spoline">가장 강한 기운은 <span className="hl">{sw.strong.label}</span>, {sw.strong.count}개입니다.</div>}
-              {sw && (
-                <div className="reading">
-                  {OHAENG_HANJA[sw.strong.key]}({sw.strong.label})이 가장 세고, {sw.weak.count === 0 ? <><Rd>▓</Rd>의 기운은 비어 있습니다.</> : <>{sw.weak.label}의 기운이 가장 약합니다.</>} 이 치우침이 당신의 <Rd>▓▓</Rd>과 <Rd>▓▓▓</Rd>을 좌우합니다. 비어 있는 기운을 채우는 방법은 따로 있습니다.
-                </div>
-              )}
-              <div className="lockline">🔒 비어 있는 기운과 채우는 법은 신당 안에서 다 보여드립니다</div>
-              <div className="spomnav">
-                <button className="spomprev" onClick={() => go(6)}>‹</button>
-                <button className="spomnext" onClick={() => go(8)}>인생그래프 보기 ›</button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {screen === 8 && (() => {
-          const warnPct = life?.warn_x ? ((parseFloat(life.right_x) - parseFloat(life.warn_x)) / life.W) * 100 : 0
-          return (
-          <>
-            <div className="stage" /><div className="texture" /><div className="ambient" />
-            <Top onBack={() => go(7)} />
-            <div className="frameborder" />
-            <div className="content">
-              <span className="spobadge">📈 인생그래프 · 운의 정점</span>
-              {life ? <div className="graph" style={{ position: 'relative' }}>
-                <LifeGraphSvg life={life} />
-                {life.warn_x && <div className="life-lock" style={{ width: `${warnPct}%` }}><span className="lk">🔒</span>45세<br />이후</div>}
-              </div> : <div className="reading">인생그래프 데이터를 불러오지 못했습니다.</div>}
-              <div className="spoline">인생의 정점은 <Rd>▓▓세</Rd>에 옵니다.</div>
-              <div className="reading">가장 높이 오르는 해와 가장 낮게 가라앉는 해는 <Rd>▓▓년</Rd> 안에 갈립니다. 그 사이 반드시 지나야 할 <Rd>▓▓</Rd>이 있고, 45세 이후 <Rd>▓▓▓</Rd>을 특히 조심하셔야 합니다.</div>
-              <div className="lockline">🔒 정점의 정확한 나이·점수와 그 이유는 신당 안에서</div>
-              <div className="spomnav">
-                <button className="spomprev" onClick={() => go(7)}>‹</button>
-                <button className="spomnext" onClick={() => go(9)}>전체 결과 보기 ›</button>
-              </div>
-            </div>
-          </>
           )
         })()}
 
