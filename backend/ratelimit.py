@@ -10,9 +10,13 @@ _hits: dict = defaultdict(deque)
 
 
 def _client_ip(request: Request) -> str:
+    # 🔒 2026-07-21: 첫 번째(leftmost) 항목은 클라이언트가 직접 X-Forwarded-For
+    # 헤더에 임의값을 실어 보내면 그대로 통과되던 구멍(rate limit 전면 우회 가능).
+    # Render 등 단일 리버스프록시는 실제 클라이언트 IP를 체인 맨 뒤에 append하므로
+    # 신뢰 가능한 값은 마지막(rightmost) 항목이다.
     xff = request.headers.get("x-forwarded-for", "")
     if xff:
-        return xff.split(",")[0].strip()
+        return xff.split(",")[-1].strip()
     return request.client.host if request.client else "unknown"
 
 

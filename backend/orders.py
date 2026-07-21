@@ -206,7 +206,10 @@ def _discord_notify(content: str):
         try:
             req = urllib.request.Request(
                 DISCORD_ORDER_WEBHOOK,
-                data=json.dumps({"content": content}).encode(),
+                # 🔒 2026-07-21: content에 들어가는 buyer_name/contact/code는 고객 입력값 —
+                # allowed_mentions 없이 보내면 "@everyone"/"@here"를 입금자명으로 넣어
+                # 운영 채널 전체핑 가능했음(Discord 기본 멘션파싱). 전부 차단.
+                data=json.dumps({"content": content, "allowed_mentions": {"parse": []}}).encode(),
                 headers={"Content-Type": "application/json",
                          "User-Agent": "saju-order-bot/1.0"},
             )
@@ -313,8 +316,12 @@ def get_order(order_id: str):
 
 
 @router.post("/api/orders/{order_id}/claim")
-def claim_deposit(order_id: str):
+def claim_deposit(order_id: str, request: Request):
     """고객이 '입금했어요' 클릭 — 이미 도착한 웹훅과 재대조 후 대기 전환."""
+    # 🔒 2026-07-21: rate_limit 없이 throttle_sec=0으로 bankapi를 직접 호출하고 있었음 —
+    # 이 엔드포인트만 반복 호출해도 매번 bankapi.co.kr 실제 API가 불려서 무료플랜 월 500건
+    # 쿼터를 몇 분 안에 소진시킬 수 있었음(전체 고객 자동입금확인 마비). 생성(8/5분)과 동일 수준으로 제한.
+    rate_limit(request, "claim", limit=8, window_sec=300)
     with SessionLocal() as db:
         order = db.get(Order, order_id)
         if not order:
