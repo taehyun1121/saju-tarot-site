@@ -429,6 +429,16 @@ CARD_ENERGY = {
 }
 SUIT_ENERGY = {"완드":("열정·행동",1),"컵":("감정·관계",1),"소드":("사고·갈등",0),"펜타클":("물질·현실",1)}
 
+# 2026-07-21 사주봇 외부검증(확신도 중) — 여러 실무 콤비네이션 가이드북에 공통으로 나오는
+# 전통적 카드 페어링 4종만. 78x78 전체를 이런 식으로 공식화하지 말 것(사주봇 명시적 경고) —
+# 드러난 카드에 이 쌍이 "둘 다" 있을 때만 보너스 한 줄로 쓰고, 없으면 조용히 스킵.
+KNOWN_PAIRS = [
+    (("죽음(13)", "탑(16)"), "죽음과 탑이 함께 나와, 강제적이고 극적인 대전환의 기운이 겹쳐 있어요."),
+    (("태양(19)", "별(17)"), "태양과 별이 함께 나와, 희망과 낙관의 기운이 강하게 겹쳐 있어요."),
+    (("악마(15)", "연인(6)"), "악마와 연인이 함께 나와, 건강하지 않은 집착이나 속박의 관계로 흐를 수 있으니 주의가 필요해요."),
+    (("연인(6)", "2/컵"), "연인과 2/컵이 함께 나와, 강한 유대와 파트너십의 기운이 겹쳐 있어요."),
+]
+
 ILGAN_SUIT_COMMENT = {
     # (일간오행, 수트) → 코멘트
     ("木","완드"): "木의 성장 에너지와 완드의 열정이 만나 서로 강하게 공명해요.",
@@ -544,11 +554,50 @@ def get_overall_summary(cards: list, ilgan: str = None, question: str = "") -> s
 
     q_msg = f"'{question}'에 대한 전체 흐름은 " if question else "전체 흐름은 "
 
+    # 2026-07-21 카드 조합 해석 추가(형 지시, 사주봇 방식검증 확신도상) — 단일 카드 나열을 넘어
+    # 스프레드 전체를 하나의 흐름으로 읽는 3가지 관습적 서술: 메이저비중/수트클러스터/포지션 에너지흐름.
+    combo_msgs = []
+
+    # ① 메이저 비중 — 타로 기초이론 정석(사주봇 확신도 상): 메이저 비중이 높을수록 운명적 전환점.
+    major_ratio = suit_count["메이저"] / total if total else 0
+    if major_ratio >= 0.4:
+        combo_msgs.append(f" 메이저 카드가 {suit_count['메이저']}장({total}장 중)으로 비중이 높아, 일상적인 사안보다는 인생의 큰 흐름과 운명적인 전환점에 가까운 질문이에요.")
+
+    # ② 수트 클러스터링 — 같은 수트 2장 이상일 때만(1장은 "몰림"이 아니므로 과장 안 함).
+    if dominant != "메이저" and dom_count >= 2:
+        combo_msgs.append(f" 특히 {dominant} 수트가 {dom_count}장 겹쳐 그 테마가 이 흐름 전체에서 반복해서 강조되고 있어요.")
+
+    # ③ 포지션 순서 에너지 흐름 — 확신도 중(관습적 서술기법이지 고정규칙 아님, 사주봇 권고대로 단정 표현 피함).
+    if total >= 3:
+        scores = []
+        for c in cards:
+            name = c.get("card_name", "")
+            rev = c.get("reversed", False)
+            e = CARD_ENERGY.get(name, ("흐름", 1))
+            scores.append(e[1] if not rev else -e[1])
+        first_half = scores[:len(scores)//2] or scores[:1]
+        second_half = scores[len(scores)//2:] or scores[-1:]
+        avg1 = sum(first_half) / len(first_half)
+        avg2 = sum(second_half) / len(second_half)
+        if avg2 - avg1 >= 1:
+            combo_msgs.append(" 앞쪽 카드보다 뒤쪽 카드의 기운이 더 밝은 쪽으로 흘러가는 느낌이 있어요 — 시간이 지날수록 나아지는 흐름으로 읽혀요.")
+        elif avg1 - avg2 >= 1:
+            combo_msgs.append(" 앞쪽 카드보다 뒤쪽 카드의 기운이 더 무거워지는 느낌이 있어요 — 지금보다 신중함이 더 필요해지는 흐름으로 읽혀요.")
+
+    # ④ 전통적 카드 페어링 보너스 — 사주봇 검증 4종만, 78x78 전체 공식화 안 함.
+    drawn_names = {c.get("card_name", "") for c in cards}
+    for (a, b), note in KNOWN_PAIRS:
+        if a in drawn_names and b in drawn_names:
+            combo_msgs.append(f" {note}")
+
+    combo_msg = "".join(combo_msgs)
+
     return (
         f"{q_msg}{overall_tone} 에너지로 나타나고 있어요. "
         f"{'메이저 카드' if dominant == '메이저' else dominant + ' 수트'}가 {dom_count}장으로 가장 많이 등장했어요. "
         f"{suit_msg.get(dominant, '')}"
         f"{tension_msg}"
+        f"{combo_msg}"
         f"{saju_msg}"
     )
 
