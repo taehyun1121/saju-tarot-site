@@ -41,6 +41,119 @@ SAMHAP_GROUPS = {  # 방합/삼합용 참고
     frozenset(["해","묘","미"]): "木",
 }
 
+# ══ 2026-07-21 사주봇 외부검증 완료(namu.wiki 신살문서·sajustudy.com·복수 명리칼럼
+# 교차대조) 참조표 — 50페이지 확장 리포트용. 전부 확신도 "상"만 채택, 확신도 "중"
+# 이하(암록/금여) 및 미확인값(己 홍염)은 지어내기 금지 원칙상 제외.
+
+# ── 12운성(포태법) ──
+TWELVE_STAGES = ["장생","목욕","관대","건록","제왕","쇠","병","사","묘","절","태","양"]
+STEM_START_BRANCH = {"갑":"해","을":"오","병":"인","정":"유","무":"인","기":"유","경":"사","신":"자","임":"신","계":"묘"}
+STEM_FORWARD = {"갑":True,"을":False,"병":True,"정":False,"무":True,"기":False,"경":True,"신":False,"임":True,"계":False}
+
+
+def twelve_stage(stem, branch):
+    s = BRANCHES.index(STEM_START_BRANCH[stem]); b = BRANCHES.index(branch)
+    offset = (b - s) % 12 if STEM_FORWARD[stem] else (s - b) % 12
+    return TWELVE_STAGES[offset]
+
+
+# ── 12신살 ──
+SAMHAP_KEY = {"인":"화국","오":"화국","술":"화국","사":"금국","유":"금국","축":"금국",
+              "신":"수국","자":"수국","진":"수국","해":"목국","묘":"목국","미":"목국"}
+TWELVE_SINSAL = ["겁살","재살","천살","지살","년살","월살","망신살","장성살","반안살","역마살","육해살","화개살"]
+SINSAL_START = {"화국":"해","금국":"인","수국":"사","목국":"신"}
+
+
+def twelve_sinsal(base_branch, target_branch):
+    s = BRANCHES.index(SINSAL_START[SAMHAP_KEY[base_branch]])
+    offset = (BRANCHES.index(target_branch) - s) % 12
+    return TWELVE_SINSAL[offset]
+
+
+# ── 형충회합파해 ──
+# YUKHAP/CHUNG은 saju_fortune_curve.py에 이미 있는 것과 동일값(순환import 방지 위해 로컬 복제)
+YUKHAP_REF = {frozenset(["자","축"]):1, frozenset(["인","해"]):1, frozenset(["묘","술"]):1,
+              frozenset(["진","유"]):1, frozenset(["사","신"]):1, frozenset(["오","미"]):1}
+CHUNG_REF = {frozenset(["자","오"]):1, frozenset(["축","미"]):1, frozenset(["인","신"]):1,
+             frozenset(["묘","유"]):1, frozenset(["진","술"]):1, frozenset(["사","해"]):1}
+SAMHAP = SAMHAP_GROUPS
+BANGHAP = {frozenset(["인","묘","진"]): "木", frozenset(["사","오","미"]): "火",
+           frozenset(["신","유","술"]): "金", frozenset(["해","자","축"]): "水"}
+SAMHYEONG = [frozenset(["인","사","신"]), frozenset(["축","술","미"])]  # 인사신=무은지형, 축술미=지세지형
+JAHYEONG_BRANCHES = {"진","오","유","해"}   # 같은 지지 2개 이상=자형
+SANGHYEONG = frozenset(["자","묘"])         # 무례지형
+PA = {frozenset(["자","유"]): 1, frozenset(["축","진"]): 1, frozenset(["인","해"]): 1,
+      frozenset(["묘","오"]): 1, frozenset(["사","신"]): 1, frozenset(["술","미"]): 1}
+HAE_REL = {frozenset(["자","미"]): 1, frozenset(["축","오"]): 1, frozenset(["인","사"]): 1,
+           frozenset(["묘","진"]): 1, frozenset(["신","해"]): 1, frozenset(["유","술"]): 1}
+
+# ── 귀인/흉신(보너스, 己 홍염 제외 — 미확인) ──
+CHEONEUL_GWIIN = {"갑":["축","미"],"무":["축","미"],"경":["축","미"],"을":["자","신"],"기":["자","신"],
+                  "병":["해","유"],"정":["해","유"],"신":["인","오"],"임":["묘","사"],"계":["묘","사"]}
+MUNCHANG_GWIIN = {"갑":"사","을":"오","병":"신","정":"유","무":"신","기":"유","경":"해","신":"자","임":"인","계":"묘"}
+YANGIN = {"갑":"묘","병":"오","무":"오","경":"유","임":"자"}   # 양간만 해당
+GOEGANG_ILJU = {("무","술"),("경","진"),("경","술"),("임","진")}
+BAEKHO_ILJU = {("갑","진"),("을","미"),("병","술"),("정","축"),("무","진"),("임","술"),("계","축")}
+GWIMUN = {frozenset(["자","유"]): 1, frozenset(["축","오"]): 1, frozenset(["인","미"]): 1,
+          frozenset(["묘","신"]): 1, frozenset(["진","해"]): 1, frozenset(["사","술"]): 1}
+WONJIN = {frozenset(["자","미"]): 1, frozenset(["축","오"]): 1, frozenset(["인","유"]): 1,
+          frozenset(["묘","신"]): 1, frozenset(["진","해"]): 1, frozenset(["사","술"]): 1}
+HONGYEOM = {"갑":"오","을":"오","병":"인","정":"미","무":"진","경":"술","신":"유","임":"자","계":"신"}  # 기(己) 미확인, 의도적 누락
+
+
+def sinsal_and_stages_report(p, ilgan):
+    """4주 전체에 대한 12운성·12신살·형충회합파해·귀인흉신 종합 — 전부 위 검증표 그대로 lookup만."""
+    positions = [("년주", p.year), ("월주", p.month), ("일주", p.day)]
+    if p.hour:
+        positions.append(("시주", p.hour))
+    base_branch = p.year[1]  # 12신살은 통상 년지 기준
+
+    stages = []
+    sinsals = []
+    for label, (stem, branch) in positions:
+        stages.append({"label": label, "stage": twelve_stage(stem, branch)})
+        sinsals.append({"label": label, "sinsal": twelve_sinsal(base_branch, branch)})
+
+    branches = [b for _, (_, b) in positions]
+    relations = []
+    seen = set()
+    for i in range(len(branches)):
+        for j in range(i + 1, len(branches)):
+            b1, b2 = branches[i], branches[j]
+            if b1 == b2 or (b1, b2) in seen or (b2, b1) in seen:
+                continue
+            seen.add((b1, b2))
+            fs = frozenset([b1, b2])
+            if fs in YUKHAP_REF:
+                relations.append(f"{b1}-{b2} 육합")
+            if fs in CHUNG_REF:
+                relations.append(f"{b1}-{b2} 충")
+            if fs in PA:
+                relations.append(f"{b1}-{b2} 파")
+            if fs in HAE_REL:
+                relations.append(f"{b1}-{b2} 해")
+    for fs, name in [(f, "삼형") for f in SAMHYEONG] + [(SANGHYEONG, "무례지형")]:
+        if fs.issubset(set(branches)):
+            relations.append(f"{'·'.join(sorted(fs))} {name}")
+    dup = [b for b in JAHYEONG_BRANCHES if branches.count(b) >= 2]
+    for b in dup:
+        relations.append(f"{b}{b} 자형")
+
+    ilju = (p.day[0], p.day[1])
+    gwiin_notes = []
+    if ilgan in CHEONEUL_GWIIN and any(b in CHEONEUL_GWIIN[ilgan] for b in branches):
+        gwiin_notes.append("천을귀인")
+    if ilgan in MUNCHANG_GWIIN and MUNCHANG_GWIIN[ilgan] in branches:
+        gwiin_notes.append("문창귀인")
+    if ilgan in YANGIN and YANGIN[ilgan] in branches:
+        gwiin_notes.append("양인")
+    if ilju in GOEGANG_ILJU:
+        gwiin_notes.append("괴강일주")
+    if ilju in BAEKHO_ILJU:
+        gwiin_notes.append("백호일주")
+
+    return {"stages": stages, "sinsals": sinsals, "relations": relations, "gwiin": gwiin_notes}
+
 def sheng(a, b):
     """a가 b를 생하는가"""
     order = ["木","火","土","金","水"]
