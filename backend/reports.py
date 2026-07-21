@@ -5,23 +5,24 @@
 템플릿 파일이 생기는 순간 자동으로 켜진다(고객 대상 코드 변경 불필요).
 """
 
+import base64
 import json
 import os
 import re
-import smtplib
+import urllib.request
 from datetime import datetime, timedelta, timezone
-from email.mime.application import MIMEApplication
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 BACKEND_DIR = os.path.dirname(__file__)
 TEMPLATE_DIR = os.path.join(BACKEND_DIR, "templates")
 STATIC_DIR = os.path.join(BACKEND_DIR, "static")
 TEMPLATES = {"saju4": "report_saju.html", "tarot_spread": "report_tarot.html"}
 
-GMAIL_ADDRESS = os.environ.get("GMAIL_ADDRESS", "")
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
-GMAIL_SENDER_NAME = os.environ.get("GMAIL_SENDER_NAME", "고삼타로")
+# 🔒 2026-07-21 실측 발견: Render 무료플랜이 2025-09부터 SMTP 465/587 아웃바운드를
+# 아예 차단(공식 정책, "Network is unreachable" 직접 확인) — 직접 smtplib 불가능.
+# bankapi.co.kr 우회와 동일 이유로 NCP 서버에 발송 릴레이(mail_proxy.py, 포트8003)를
+# 세워서 그쪽에서 실제 SMTP 발송.
+MAIL_RELAY_BASE = os.environ.get("MAIL_RELAY_BASE", "http://101.79.25.93:8003")
+MAIL_RELAY_TOKEN = os.environ.get("MAIL_RELAY_TOKEN", "")
 KST = timezone(timedelta(hours=9))
 
 OHAENG_KR = {"갑": "목", "을": "목", "병": "화", "정": "화", "무": "토",
@@ -168,22 +169,19 @@ def _render_pdf(template_path: str, context: dict) -> bytes:
 
 
 def _send_email(to_email: str, subject: str, body_text: str, pdf_bytes: bytes, pdf_filename: str):
-    if not (GMAIL_ADDRESS and GMAIL_APP_PASSWORD):
+    if not MAIL_RELAY_TOKEN:
         return False
-    msg = MIMEMultipart()
-    msg["From"] = f"{GMAIL_SENDER_NAME} <{GMAIL_ADDRESS}>"
-    msg["To"] = to_email
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body_text, "plain", "utf-8"))
-    part = MIMEApplication(pdf_bytes, Name=pdf_filename)
-    part["Content-Disposition"] = f'attachment; filename="{pdf_filename}"'
-    msg.attach(part)
-
-    with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
-        server.starttls()
-        server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
-        server.sendmail(GMAIL_ADDRESS, [to_email], msg.as_string())
-    return True
+    payload = json.dumps({
+        "to_email": to_email, "subject": subject, "body_text": body_text,
+        "pdf_base64": base64.b64encode(pdf_bytes).decode(), "pdf_filename": pdf_filename,
+    }).encode()
+    req = urllib.request.Request(
+        f"{MAIL_RELAY_BASE}/send", data=payload,
+        headers={"Content-Type": "application/json", "X-Relay-Token": MAIL_RELAY_TOKEN},
+    )
+    with urllib.request.urlopen(req, timeout=30) as res:
+        result = json.loads(res.read())
+    return result.get("status") == "sent"
 
 
 def send_report_email(order) -> bool:
