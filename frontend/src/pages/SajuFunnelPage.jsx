@@ -61,8 +61,8 @@ function PcWide({ onBack, bgPos, center, children, onPrev, onNext, prevDisabled,
       <div className="bg" style={{ backgroundImage: `url('${imgHallWide}')`, backgroundPosition: bgPos || 'center 42%' }} />
       <div className="tint" /><div className="tint2" /><div className="dancheong" />
       <div className="topbar"><button className="bk" onClick={onBack}>‹</button><span className="wm serif">고삼<b>타로</b></span></div>
-      {onPrev && <button className={`edge L${prevDisabled ? ' dim' : ''}`} onClick={onPrev} aria-label="이전 운세">‹</button>}
-      {onNext && <button className={`edge R${nextDisabled ? ' dim' : ''}`} onClick={onNext} aria-label="다음 운세">›</button>}
+      {onPrev && <button className={`edge L${prevDisabled ? ' dim' : ''}`} onClick={onPrev} aria-label="이전 운세"><span className="ic">‹</span></button>}
+      {onNext && <button className={`edge R${nextDisabled ? ' dim' : ''}`} onClick={onNext} aria-label="다음 운세"><span className="ic">›</span></button>}
       <div className="wrap" style={center ? { justifyContent: 'center' } : undefined}>{children}</div>
     </div>
   )

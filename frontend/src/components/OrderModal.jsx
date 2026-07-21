@@ -131,7 +131,7 @@ export default function OrderModal({ open, onClose, productKey, amount, productN
                   <span className="nm serif">{order.deposit_name}</span>
                   <span className={`paymodal-copy${copied === 'name' ? ' copied' : ''}`} onClick={() => copy(order.deposit_name, 'name')}>{copied === 'name' ? '복사됨' : '복사'}</span>
                 </div>
-                <div className="warn">뒤 코드까지 붙여서 입금해야 자동 매칭됩니다. 이름만 입금 시 확인 지연.</div>
+                <div className="warn">이름이 다르면 자동 확인이 지연될 수 있습니다.</div>
               </div>
               <div className="paymodal-acc">
                 <div className="paymodal-row hot"><span className="k">계좌번호</span>

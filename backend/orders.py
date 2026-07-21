@@ -432,8 +432,8 @@ def create_order(body: OrderCreate, request: Request):
             "bank": BANK_NAME,
             "account": BANK_ACCOUNT,
             "holder": BANK_HOLDER,
-            "deposit_name": f"{name}{order.code}",
-            "notice": "입금자명을 반드시 위 형식으로 입력해주세요. 금액이 다르면 자동 확인이 안 됩니다.",
+            "deposit_name": name,
+            "notice": "입금자명을 본명 그대로 입력해주세요. 금액이 다르면 자동 확인이 안 됩니다.",
         }
 
 

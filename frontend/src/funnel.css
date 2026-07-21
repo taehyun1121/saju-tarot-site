@@ -372,6 +372,9 @@ select.inp{appearance:none;}
   display:grid;place-items:center;cursor:pointer;padding:0;
   background:rgba(11,17,36,.62);border:1.5px solid rgba(212,175,55,.5);
   box-shadow:0 8px 24px rgba(0,0,0,.5);color:var(--gold);font-size:30px;line-height:1;backdrop-filter:blur(4px);transition:.2s;}
+/* 🔴 코코 수정(2026-07-21, 실측): '‹›' 글리프가 폰트(Malgun Gothic 등)의 라인박스 하단여백 때문에
+   place-items:center로 그리드 중앙정렬해도 실제 시각적으로 5px 아래로 치우침(스크린샷 픽셀분석 실측) — 보정. */
+.pcwide .edge .ic{display:block;transform:translateY(-5px);}
 .pcwide .edge:hover{box-shadow:0 8px 30px rgba(0,0,0,.6),0 0 20px rgba(227,192,105,.5);border-color:var(--gold);}
 .pcwide .edge.L{left:50px;} .pcwide .edge.R{right:50px;}
 .pcwide .edge.dim{opacity:.28;pointer-events:none;}
