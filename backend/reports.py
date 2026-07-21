@@ -109,7 +109,7 @@ def _build_saju_context(order, data: dict) -> dict:
         "user": {"name": order.buyer_name, "birth_text": birth_text, "gender": gender_kr},
         "issued_date": datetime.now(KST).strftime("%Y년 %m월 %d일"),
         "cover_bg_url": _asset_file_url("/static/images/bg_hanji.jpg"),
-        "emblem_url": _asset_file_url("/static/images/em_saju_blue.jpg"),
+        "emblem_url": _asset_file_url("/static/images/emblem_saju.png"),
         "saju": {
             "pillars": {
                 "year": _pillar_ctx(pillars.get("year"), "년주"),
@@ -148,7 +148,7 @@ def _build_tarot_context(order, data: dict) -> dict:
         "issued_date": datetime.now(KST).strftime("%Y년 %m월 %d일"),
         "question": data.get("question", ""),
         "cover_bg_url": _asset_file_url("/static/images/bg_hanji.jpg"),
-        "emblem_url": _asset_file_url("/static/images/em_tarot_blue.jpg"),
+        "emblem_url": _asset_file_url("/static/images/emblem_tarot.png"),
         "spread": {"name": data.get("spread_name", ""), "description": f"{len(cards)}장 스프레드로 살펴본 흐름입니다."},
         "cards": cards,
         "overall_summary": overall,
