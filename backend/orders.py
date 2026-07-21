@@ -44,6 +44,26 @@ def now_kst():
     return datetime.now(KST)
 
 
+# ── 오픈 이벤트(1+1) ──────────────────────────────────────────
+# 2026-07-21 주인 지시: 오픈(런칭) 기념 1개월 한정 1+1(결제 1건에 결과물 2건 제공).
+# 자동 PDF 발송 인프라가 없어 실제 2건 발송은 운영자가 수동으로 함 —
+# 코드가 하는 일은 (1) 기간 내 여부를 프론트/알림에 노출 (2) 종료시각 지나면 자동 원복.
+PROMO_1PLUS1_END = datetime(2026, 8, 21, 0, 0, tzinfo=KST)
+PROMO_1PLUS1_LABEL = "오픈 이벤트: 지금 결제하시면 1+1 (결과물 2건)"
+
+
+def _promo_active():
+    return now_kst() < PROMO_1PLUS1_END
+
+
+@router.get("/api/promo")
+def get_promo():
+    active = _promo_active()
+    return {"active": active,
+            "ends_at": PROMO_1PLUS1_END.isoformat() if active else None,
+            "label": PROMO_1PLUS1_LABEL if active else None}
+
+
 class Order(Base):
     __tablename__ = "orders"
     id = Column(String(32), primary_key=True)
@@ -260,11 +280,13 @@ def _approve(db, order: Order, raw: str):
     order.status = "paid"
     order.matched_tx = raw[:2000]
     db.commit()
+    # 주문 "생성 시점"이 프로모션 기간 내였는지로 판정(승인이 자정 넘겨 지연돼도 고객 기준 공정하게)
+    promo_tag = "\n🎉 **1+1 오픈이벤트 대상 — 결과물 2건 준비해서 보내주세요**" if order.created_at < PROMO_1PLUS1_END else ""
     _discord_notify(
         f"✅ **입금 확인 — 자동 승인**\n"
         f"주문 `{order.id}` | {order.product_name} ₩{order.amount:,}\n"
         f"입금자: {order.buyer_name} (코드 {order.code}) | 연락처: {order.contact}\n"
-        f"→ 심화풀이 전달 필요"
+        f"→ 심화풀이 전달 필요{promo_tag}"
     )
 
 
@@ -371,11 +393,12 @@ def claim_deposit(order_id: str, request: Request):
 
         order.status = "deposit_claimed"
         db.commit()
+        promo_tag = "\n🎉 **1+1 오픈이벤트 대상**" if order.created_at < PROMO_1PLUS1_END else ""
         _discord_notify(
             f"🔔 **입금 확인 요청** (아직 웹훅 미도착)\n"
             f"주문 `{order.id}` | {order.product_name} ₩{order.amount:,}\n"
             f"입금자명(예정): {order.buyer_name}{order.code} | 연락처: {order.contact}\n"
-            f"→ 몇 분 내 웹훅 오면 자동 승인, 안 오면 수동 확인 필요"
+            f"→ 몇 분 내 웹훅 오면 자동 승인, 안 오면 수동 확인 필요{promo_tag}"
         )
         return {"status": "deposit_claimed",
                 "message": "입금 확인 중입니다. 확인되는 대로 처리됩니다 (보통 1~2분)."}

@@ -227,6 +227,12 @@ select.inp{appearance:none;}
 .pricebox .pn{font:600 12.5px system-ui;color:var(--muted);margin-top:4px;}
 .mailrow{display:flex;align-items:center;gap:8px;justify-content:center;font:600 12.5px system-ui;color:var(--muted);margin-top:10px;}
 
+.promobanner{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap;background:linear-gradient(90deg,rgba(212,175,55,.16),rgba(42,82,181,.16));border:1px solid var(--line);border-radius:999px;padding:9px 16px;margin:0 0 14px;font:600 12.5px system-ui;color:var(--ink);}
+.promobanner .pb-badge{background:var(--gold);color:#1a1200;font-weight:800;border-radius:999px;padding:2px 9px;font-size:12px;letter-spacing:.02em;}
+.promobanner .pb-label{color:var(--ink);}
+.promobanner .pb-timer{color:var(--gold2);font-weight:700;}
+.pcwide .promobanner{width:520px;justify-content:center;margin:0 0 18px;padding:11px 20px;font-size:13.5px;}
+
 /* 타로 전용: 선택카드/질문박스 (출처: funnel_tarot_blue.html) */
 .selcard{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:inset 0 0 24px rgba(0,0,0,.28);}
 .selcard .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:linear-gradient(180deg,#2a52b5,#12224a);border:1px solid var(--line);color:var(--gold);}
