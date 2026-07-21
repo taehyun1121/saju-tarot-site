@@ -2,6 +2,10 @@
 // 쿼리파라미터로 분기. OrderModal(결제창)에서 링크로 연결됨.
 export default function PrivacyPolicyPage() {
   return (
+    // 🔒 2026-07-21: 사이트 전역이 다크네이비 배경이라, 배경 지정 없이 어두운 글자색만 쓰면
+    // 배경 위에 거의 안 보이는 텍스트가 됨(실측: 배경(13,10,30) vs 글자(34,34,34) 명암비 1.22:1,
+    // WCAG AA 4.5:1 기준 FAIL). 이 페이지만 명시적으로 흰 배경을 깔아 명암비 확보.
+    <div style={{ background: '#fff', minHeight: '100vh' }}>
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 20px 80px', color: '#222', lineHeight: 1.7, fontSize: 14 }}>
       <h1 style={{ fontSize: 22, marginBottom: 8 }}>개인정보처리방침</h1>
       <p style={{ color: '#666', marginBottom: 28 }}>시행일: 2026년 7월 21일</p>
@@ -65,6 +69,7 @@ export default function PrivacyPolicyPage() {
       <p style={{ marginTop: 40, color: '#999', fontSize: 12 }}>
         ※ 본 방침은 서비스 운영 상황에 따라 변경될 수 있으며, 변경 시 본 페이지를 통해 고지합니다.
       </p>
+    </div>
     </div>
   )
 }

@@ -1,0 +1,175 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"/>
+<title>고삼타로 사주 리딩 — {{ user.name }}</title>
+<style>
+/* ===== 폰트 (WeasyPrint 로컬 ttf, static 3파일) ===== */
+@font-face{font-family:'Noto Sans KR';src:url('/app/static/fonts/NotoSansKR-Regular.ttf');font-weight:400;font-style:normal;}
+@font-face{font-family:'Noto Sans KR';src:url('/app/static/fonts/NotoSansKR-Bold.ttf');font-weight:700;font-style:normal;}
+@font-face{font-family:'Noto Sans KR';src:url('/app/static/fonts/NotoSansKR-Black.ttf');font-weight:900;font-style:normal;}
+
+/* ===== 팔레트 ===== */
+:root{--gold:#e3c069;--gold2:#c9a24b;--cobalt:#2a52b5;--navy:#17306b;--ink:#f4ead2;--muted:#a9b4cf;--paper:#0c1220;--paper2:#0f1830;--red:#c0392b;--ok:#3fa76a;}
+
+/* ===== @page (A4, 다크 배경, 브랜드 푸터) ===== */
+@page{size:A4;margin:16mm 15mm 18mm 15mm;background:#0c1220;
+  @bottom-center{content:"고삼타로  ·  gosamtarot.com";font-family:'Noto Sans KR';font-weight:400;font-size:8pt;color:#7f8aa8;}
+  @bottom-right{content:counter(page);font-family:'Noto Sans KR';font-weight:700;font-size:8pt;color:#c9a24b;}}
+@page cover{margin:0;background:#0a0f1c;@bottom-center{content:none;}@bottom-right{content:none;}}
+
+html,body{margin:0;padding:0;}
+body{color:var(--ink);font-family:'Noto Sans KR',sans-serif;font-weight:400;font-size:11pt;line-height:1.7;-weasy-hyphens:none;
+  background:#0c1220;print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+*{print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+h1,h2,h3{margin:0;}
+
+/* ===== 표지 ===== */
+.cover{page:cover;position:relative;width:210mm;height:297mm;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  background:linear-gradient(180deg,#0a0f1c 0%,#0d1526 55%,#0a0f1c 100%);}
+.cover .tex{position:absolute;inset:0;background:url('{{ cover_bg_url }}') center/cover no-repeat;opacity:.14;}
+.cover .veil{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 38%,rgba(42,82,181,.20),transparent 62%);}
+.dan{position:absolute;left:0;right:0;height:6px;background:repeating-linear-gradient(90deg,#1c3d7a 0 16px,#e3c069 16px 32px,#1f6f4e 32px 48px,#2a52b5 48px 64px,#c0392b 64px 71px);}
+.cover .dan.top{top:0;}.cover .dan.bot{bottom:0;}
+.cover .em{position:relative;width:112px;height:112px;border-radius:50%;margin-bottom:26px;
+  background:url('{{ emblem_url }}') center/contain no-repeat;filter:drop-shadow(0 6px 20px rgba(0,0,0,.5));}
+.cover .kicker{position:relative;font-weight:700;font-size:12pt;letter-spacing:.42em;color:var(--gold);margin-bottom:16px;padding-left:.42em;}
+.cover .title{position:relative;font-weight:900;font-size:34pt;line-height:1.25;color:#f7ecd6;letter-spacing:.01em;}
+.cover .title b{color:var(--gold);}
+.cover .rule{position:relative;width:52px;height:2px;background:var(--gold);margin:26px 0 24px;opacity:.8;}
+.cover .who{position:relative;font-weight:700;font-size:15pt;color:var(--ink);}
+.cover .meta{position:relative;font-weight:400;font-size:10.5pt;color:var(--muted);margin-top:10px;line-height:1.9;}
+.cover .foot{position:absolute;bottom:26mm;font-weight:400;font-size:9pt;color:#6f7a99;letter-spacing:.28em;}
+
+/* ===== 섹션 공통 ===== */
+.section{margin-top:2mm;}
+.section+.section{margin-top:9mm;}
+.shead{display:flex;align-items:center;gap:9px;margin-bottom:6mm;padding-bottom:3mm;border-bottom:1px solid rgba(212,175,55,.32);}
+.shead .seal{color:var(--gold);font-size:13pt;}
+.shead .n{font-weight:900;font-size:16pt;color:#f7ecd6;letter-spacing:.01em;}
+.shead .n b{color:var(--gold);}
+.shead .en{margin-left:auto;font-weight:400;font-size:8.5pt;letter-spacing:.24em;color:#6f7a99;text-transform:uppercase;}
+.lead{font-weight:400;font-size:11pt;color:#d8dcea;margin-bottom:5mm;}
+
+/* ===== 4기둥 ===== */
+.pillars{display:flex;gap:4mm;}
+.pillar{flex:1;background:linear-gradient(180deg,var(--paper2),#0b1120);border:1px solid rgba(212,175,55,.28);border-radius:4mm;
+  padding:5mm 3mm 4mm;text-align:center;page-break-inside:avoid;}
+.pillar .pos{font-weight:700;font-size:9.5pt;color:var(--gold2);letter-spacing:.06em;margin-bottom:3mm;}
+.pillar .stem,.pillar .branch{font-weight:900;font-size:27pt;line-height:1.12;color:#f7ecd6;}
+.pillar .branch{color:var(--gold);}
+.pillar .kr{font-weight:400;font-size:9pt;color:var(--muted);margin-top:2mm;letter-spacing:.04em;}
+.pillar .oh{display:inline-block;margin-top:3mm;font-weight:700;font-size:8.5pt;padding:1.4mm 3mm;border-radius:999px;border:1px solid rgba(255,255,255,.14);}
+.oh.wood{color:#7fe0a6;background:rgba(63,167,106,.14);} .oh.fire{color:#ff9a8f;background:rgba(192,57,43,.16);}
+.oh.earth{color:#f0d38a;background:rgba(201,162,75,.16);} .oh.metal{color:#e6e8f0;background:rgba(217,217,224,.12);}
+.oh.water{color:#9db9ff;background:rgba(42,82,181,.18);}
+
+/* ===== 흐름(대운/세운) ===== */
+.flow{background:rgba(42,82,181,.10);border:1px solid rgba(212,175,55,.22);border-left:3px solid var(--gold);border-radius:3mm;padding:5mm 6mm;page-break-inside:avoid;}
+.flow p{margin:0 0 2.5mm;} .flow p:last-child{margin:0;} .flow b{color:var(--gold);}
+
+/* ===== AI 심화풀이 반복 ===== */
+.read{background:linear-gradient(180deg,var(--paper2),#0b1120);border:1px solid rgba(212,175,55,.2);border-radius:3.5mm;
+  padding:5mm 6mm;margin-bottom:4mm;page-break-inside:avoid;}
+.read .rt{display:flex;align-items:center;gap:7px;font-weight:700;font-size:12.5pt;color:var(--gold);margin-bottom:2.5mm;}
+.read .rt .no{flex:none;width:20px;height:20px;border-radius:50%;background:linear-gradient(180deg,var(--gold),var(--gold2));color:#0a0f1e;font-weight:900;font-size:9pt;display:flex;align-items:center;justify-content:center;}
+.read .rc{font-weight:400;font-size:10.5pt;color:#e3e7f2;}
+
+/* ===== 4대운 피크 ===== */
+.peaks{display:flex;flex-direction:column;gap:4mm;}
+.peak{background:linear-gradient(180deg,var(--paper2),#0b1120);border:1px solid rgba(212,175,55,.24);border-radius:3.5mm;
+  padding:4.5mm 5mm;page-break-inside:avoid;}
+.peak .top{display:flex;align-items:baseline;gap:8px;margin-bottom:3mm;}
+.peak .lb{font-weight:900;font-size:13pt;color:#f7ecd6;}
+.peak.good .lb::before{content:"◆ ";color:var(--ok);} .peak.care .lb::before{content:"◆ ";color:var(--red);}
+.peak.love .lb::before{content:"◆ ";color:#ff8fb0;} .peak.marry .lb::before{content:"◆ ";color:var(--gold);}
+.peak .ay{font-weight:700;font-size:9.5pt;color:var(--muted);}
+.peak .warn{margin-left:auto;font-weight:700;font-size:8.5pt;color:#0a0f1e;background:var(--gold);border-radius:999px;padding:1mm 3mm;}
+.peak .barwrap{display:flex;align-items:center;gap:8px;margin:2mm 0 3mm;}
+.peak .bar{flex:1;height:7px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;}
+.peak .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--cobalt),var(--gold));}
+.peak .sc{font-weight:900;font-size:11pt;color:var(--gold);}
+.peak .rs{font-weight:400;font-size:10pt;color:#d3d8e6;}
+
+/* ===== 마무리 ===== */
+.closing{margin-top:9mm;text-align:center;page-break-inside:avoid;padding:7mm 6mm;border:1px solid rgba(212,175,55,.28);border-radius:4mm;
+  background:radial-gradient(ellipse at 50% 0%,rgba(42,82,181,.16),transparent 70%);}
+.closing .seal{font-size:15pt;color:var(--gold);}
+.closing .ct{font-weight:900;font-size:14pt;color:#f7ecd6;margin:3mm 0;}
+.closing .cc{font-weight:400;font-size:10.5pt;color:var(--muted);line-height:1.8;}
+.brand{margin-top:6mm;font-weight:700;font-size:9pt;letter-spacing:.3em;color:var(--gold2);}
+</style></head>
+<body>
+
+<!-- ===== 표지 ===== -->
+<section class="cover">
+  <div class="tex"></div><div class="veil"></div>
+  <div class="dan top"></div><div class="dan bot"></div>
+  <div class="em"></div>
+  <div class="kicker">GOSAM · 命理</div>
+  <h1 class="title">프리미엄 <b>사주 리딩</b></h1>
+  <div class="rule"></div>
+  <div class="who">{{ user.name }} 님</div>
+  <div class="meta">{{ user.birth_text }}{% if user.gender %} · {{ user.gender }}{% endif %}<br>발행일 {{ issued_date }}</div>
+  <div class="foot">당신의 사주를 정성껏 풀어 드립니다</div>
+</section>
+
+<!-- ===== 본문 ===== -->
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">사주 원국 — 네 <b>기둥</b></span><span class="en">Four Pillars</span></div>
+  <div class="lead">태어난 연·월·일·시가 이룬 네 기둥입니다. 위는 천간(天干), 아래는 지지(地支)입니다.</div>
+  <div class="pillars">
+    {% for p in [saju.pillars.year, saju.pillars.month, saju.pillars.day, saju.pillars.hour] %}
+    <div class="pillar">
+      <div class="pos">{{ p.position }}</div>
+      <div class="stem">{{ p.stem }}</div>
+      <div class="branch">{{ p.branch }}</div>
+      <div class="kr">{{ p.reading }}</div>
+      <span class="oh {{ p.element_en }}">{{ p.element }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">대운·세운의 <b>흐름</b></span><span class="en">Fortune Flow</span></div>
+  <div class="flow">
+    <p><b>대운</b> · {{ saju.daeun }}</p>
+    <p><b>세운</b> · {{ saju.seun }}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">AI 심화 <b>풀이</b></span><span class="en">In-depth Reading</span></div>
+  {% for r in ai_readings %}
+  <div class="read">
+    <div class="rt"><span class="no">{{ loop.index }}</span>{{ r.title }}</div>
+    <div class="rc">{{ r.content }}</div>
+  </div>
+  {% endfor %}
+</section>
+
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">네 번의 <b>큰 운</b></span><span class="en">Life Peaks</span></div>
+  <div class="lead">삶에서 뚜렷이 드러나는 네 가지 운의 정점입니다.</div>
+  <div class="peaks">
+    {% for p in luck_peaks %}
+    <div class="peak {{ p.kind }}">
+      <div class="top">
+        <span class="lb">{{ p.label }}</span>
+        <span class="ay">{{ p.age }}세 · {{ p.year }}년</span>
+        {% if p.age >= 45 %}<span class="warn">주의</span>{% endif %}
+      </div>
+      <div class="barwrap"><span class="bar"><i style="width:{{ p.score }}%"></i></span><span class="sc">{{ p.score }}</span></div>
+      <div class="rs">{{ p.reason }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ===== 마무리 ===== -->
+<section class="closing">
+  <div class="seal">❖</div>
+  <div class="ct">{{ closing.title }}</div>
+  <div class="cc">{{ closing.body }}</div>
+  <div class="brand">고삼타로 · GOSAM TAROT</div>
+</section>
+
+</body></html>

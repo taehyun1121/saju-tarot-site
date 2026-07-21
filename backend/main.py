@@ -19,6 +19,7 @@ from saju import calc_pillars, calc_daeun, build_reading, build_compatibility_re
 from tarot import SPREADS, draw_cards, finalize_cards, get_meaning, get_saju_meaning, get_overall_summary
 from saju_rule_engine import Pillars as _EnginePillars
 from saju_fortune_curve import score_curve
+from saju_narrative import rule_based_ai_reading, rule_based_decade_reading
 
 # ── Gemini API 클라이언트 ────────────────────────────────────
 _gemini_client = None
@@ -457,17 +458,32 @@ def calculate_saju(req: SajuRequest, request: Request):
     }
     reading_list = [{"title": t, "content": c} for t, c in reading]
 
+    engine_pillars = _EnginePillars(
+        (yp[0], yp[1]), (mp[0], mp[1]), (dp[0], dp[1]),
+        (hp[0], hp[1]) if hp else None,
+    )
+
     ai = generate_ai_saju_reading(pillars, dp[0], daeun, seun, reading_list, req.gender)
     decades = generate_decade_reading(req.year, pillars, dp[0], daeun, req.gender)
+    gemini_worked = bool(ai.get("ai_readings"))
+    # Gemini 크레딧 소진 등으로 AI 실패 시 — 빈 채로 나가지 않게 룰엔진(사주봇 검증완료
+    # full_report) 기반 폴백. 2026-07-21 주인 지시: "제미니 없이 하려고" 했던 그 작업.
+    if not ai.get("ai_readings"):
+        ai = rule_based_ai_reading(pillars, dp[0], ILGAN_TRAITS.get(dp[0], {}), daeun, seun,
+                                    req.gender, engine_pillars, hp is not None)
+    if not decades:
+        decades = rule_based_decade_reading(
+            [{"label": f"{d}대", "age_range": f"{d}~{d+9}세", "years": f"{req.year+d}~{req.year+d+9}년",
+              "daeun": " / ".join(f"{x['hanja']}({x['korean']}) {x['start']}~{x['end']}세"
+                                    for x in daeun if x['start'] < d + 9 and x['end'] > d) or "대운 정보 없음",
+              "status": "과거" if req.year + d + 9 < 2026 else ("현재" if req.year + d <= 2026 <= req.year + d + 9 else "미래")}
+             for d in range(10, 80, 10)],
+            ILGAN_TRAITS.get(dp[0], {}), engine_pillars, req.gender)
 
     # 운세곡선 엔진(saju_fortune_curve) — AI 미사용, 결정론적 명리 룰. 4대운 피크(대박·조심·연애·결혼)
     # 실패해도 전체 API는 죽지 않게 격리(엔진은 부가 기능, saju 핵심 결과에 영향 없음).
     fortune = None
     try:
-        engine_pillars = _EnginePillars(
-            (yp[0], yp[1]), (mp[0], mp[1]), (dp[0], dp[1]),
-            (hp[0], hp[1]) if hp else None,
-        )
         daewoon_su = daeun[0]["start"] if daeun else None
         result = score_curve(engine_pillars, req.gender, req.year, daewoon_su=daewoon_su, age_range=(3, 83))
         # 카테고리별 피크 주변 창(±3세, 1년 간격) — SajuFunnelPage 스포화면 미니그래프용.
@@ -499,7 +515,7 @@ def calculate_saju(req: SajuRequest, request: Request):
         "ai_readings": ai.get("ai_readings", []),
         "ai_overall": ai.get("overall", ""),
         "decade_readings": decades,
-        "ai_available": bool(ai),
+        "ai_available": gemini_worked,
         "fortune": fortune,
     }
 

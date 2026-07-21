@@ -1,0 +1,128 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"/>
+<title>고삼타로 타로 리딩 — {{ user.name }}</title>
+<style>
+@font-face{font-family:'Noto Sans KR';src:url('/app/static/fonts/NotoSansKR-Regular.ttf');font-weight:400;font-style:normal;}
+@font-face{font-family:'Noto Sans KR';src:url('/app/static/fonts/NotoSansKR-Bold.ttf');font-weight:700;font-style:normal;}
+@font-face{font-family:'Noto Sans KR';src:url('/app/static/fonts/NotoSansKR-Black.ttf');font-weight:900;font-style:normal;}
+:root{--gold:#e3c069;--gold2:#c9a24b;--cobalt:#2a52b5;--navy:#17306b;--ink:#f4ead2;--muted:#a9b4cf;--paper:#0c1220;--paper2:#0f1830;--red:#c0392b;--ok:#3fa76a;}
+
+@page{size:A4;margin:16mm 15mm 18mm 15mm;background:#0c1220;
+  @bottom-center{content:"고삼타로  ·  gosamtarot.com";font-family:'Noto Sans KR';font-weight:400;font-size:8pt;color:#7f8aa8;}
+  @bottom-right{content:counter(page);font-family:'Noto Sans KR';font-weight:700;font-size:8pt;color:#c9a24b;}}
+@page cover{margin:0;background:#0a0f1c;@bottom-center{content:none;}@bottom-right{content:none;}}
+
+html,body{margin:0;padding:0;}
+body{color:var(--ink);font-family:'Noto Sans KR',sans-serif;font-weight:400;font-size:11pt;line-height:1.7;
+  background:#0c1220;print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+*{print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+h1,h2,h3{margin:0;}
+
+/* 표지 */
+.cover{page:cover;position:relative;width:210mm;height:297mm;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  background:linear-gradient(180deg,#0a0f1c 0%,#0d1526 55%,#0a0f1c 100%);}
+.cover .tex{position:absolute;inset:0;background:url('{{ cover_bg_url }}') center/cover no-repeat;opacity:.14;}
+.cover .veil{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 38%,rgba(42,82,181,.20),transparent 62%);}
+.dan{position:absolute;left:0;right:0;height:6px;background:repeating-linear-gradient(90deg,#1c3d7a 0 16px,#e3c069 16px 32px,#1f6f4e 32px 48px,#2a52b5 48px 64px,#c0392b 64px 71px);}
+.cover .dan.top{top:0;}.cover .dan.bot{bottom:0;}
+.cover .em{position:relative;width:112px;height:112px;border-radius:50%;margin-bottom:26px;background:url('{{ emblem_url }}') center/contain no-repeat;filter:drop-shadow(0 6px 20px rgba(0,0,0,.5));}
+.cover .kicker{position:relative;font-weight:700;font-size:12pt;letter-spacing:.42em;color:var(--gold);margin-bottom:16px;padding-left:.42em;}
+.cover .title{position:relative;font-weight:900;font-size:34pt;line-height:1.25;color:#f7ecd6;}
+.cover .title b{color:var(--gold);}
+.cover .rule{position:relative;width:52px;height:2px;background:var(--gold);margin:26px 0 24px;opacity:.8;}
+.cover .who{position:relative;font-weight:700;font-size:15pt;color:var(--ink);}
+.cover .meta{position:relative;font-weight:400;font-size:10.5pt;color:var(--muted);margin-top:10px;line-height:1.9;}
+.cover .foot{position:absolute;bottom:26mm;font-weight:400;font-size:9pt;color:#6f7a99;letter-spacing:.28em;}
+
+/* 섹션 공통 */
+.section{margin-top:2mm;} .section+.section{margin-top:9mm;}
+.shead{display:flex;align-items:center;gap:9px;margin-bottom:6mm;padding-bottom:3mm;border-bottom:1px solid rgba(212,175,55,.32);}
+.shead .seal{color:var(--gold);font-size:13pt;} .shead .n{font-weight:900;font-size:16pt;color:#f7ecd6;} .shead .n b{color:var(--gold);}
+.shead .en{margin-left:auto;font-weight:400;font-size:8.5pt;letter-spacing:.24em;color:#6f7a99;text-transform:uppercase;}
+.lead{font-weight:400;font-size:11pt;color:#d8dcea;margin-bottom:5mm;}
+
+/* 스프레드 개요 */
+.spread{background:rgba(42,82,181,.10);border:1px solid rgba(212,175,55,.22);border-left:3px solid var(--gold);border-radius:3mm;padding:5mm 6mm;page-break-inside:avoid;}
+.spread .sn{font-weight:900;font-size:14pt;color:var(--gold);margin-bottom:2mm;}
+.spread .sd{font-weight:400;font-size:10.5pt;color:#d8dcea;}
+
+/* 카드별 리딩 반복 */
+.card{display:flex;gap:5mm;background:linear-gradient(180deg,var(--paper2),#0b1120);border:1px solid rgba(212,175,55,.22);border-radius:3.5mm;
+  padding:5mm;margin-bottom:4mm;page-break-inside:avoid;}
+.card .pic{flex:none;width:30mm;height:48mm;border-radius:2.5mm;overflow:hidden;border:1px solid rgba(212,175,55,.4);
+  background:#0a0f1c center/cover no-repeat;position:relative;}
+.card .pic.rev{transform:rotate(180deg);}
+.card .body{flex:1;}
+.card .ptag{font-weight:700;font-size:9pt;letter-spacing:.06em;color:var(--gold2);margin-bottom:1.5mm;}
+.card .nm{display:flex;align-items:baseline;gap:8px;margin-bottom:3mm;}
+.card .nm .cn{font-weight:900;font-size:14pt;color:#f7ecd6;}
+.card .ori{font-weight:700;font-size:8.5pt;padding:1mm 2.6mm;border-radius:999px;}
+.ori.up{color:#7fe0a6;background:rgba(63,167,106,.16);border:1px solid rgba(63,167,106,.4);}
+.ori.rev{color:#ff9a8f;background:rgba(192,57,43,.16);border:1px solid rgba(192,57,43,.4);}
+.card .kw{display:flex;flex-wrap:wrap;gap:2mm;margin-bottom:3mm;}
+.card .kw span{font-weight:700;font-size:8.5pt;color:var(--gold);background:rgba(227,192,105,.12);border:1px solid rgba(212,175,55,.34);border-radius:999px;padding:1mm 2.6mm;}
+.card .mean{font-weight:700;font-size:10pt;color:#e7d9b6;margin-bottom:2mm;}
+.card .ai{font-weight:400;font-size:10pt;color:#d3d8e6;}
+
+/* 종합 */
+.overall{background:linear-gradient(180deg,var(--paper2),#0b1120);border:1px solid rgba(212,175,55,.3);border-radius:4mm;padding:6mm 6.5mm;page-break-inside:avoid;}
+.overall p{margin:0;font-weight:400;font-size:11pt;color:#e7ebf5;line-height:1.85;}
+
+/* 마무리 */
+.closing{margin-top:9mm;text-align:center;page-break-inside:avoid;padding:7mm 6mm;border:1px solid rgba(212,175,55,.28);border-radius:4mm;
+  background:radial-gradient(ellipse at 50% 0%,rgba(42,82,181,.16),transparent 70%);}
+.closing .seal{font-size:15pt;color:var(--gold);} .closing .ct{font-weight:900;font-size:14pt;color:#f7ecd6;margin:3mm 0;}
+.closing .cc{font-weight:400;font-size:10.5pt;color:var(--muted);line-height:1.8;}
+.brand{margin-top:6mm;font-weight:700;font-size:9pt;letter-spacing:.3em;color:var(--gold2);}
+</style></head>
+<body>
+
+<!-- 표지 -->
+<section class="cover">
+  <div class="tex"></div><div class="veil"></div>
+  <div class="dan top"></div><div class="dan bot"></div>
+  <div class="em"></div>
+  <div class="kicker">GOSAM · 塔羅</div>
+  <h1 class="title">프리미엄 <b>타로 리딩</b></h1>
+  <div class="rule"></div>
+  <div class="who">{{ user.name }} 님</div>
+  <div class="meta">{{ spread.name }}{% if question %} · “{{ question }}”{% endif %}<br>발행일 {{ issued_date }}</div>
+  <div class="foot">펼쳐진 카드에 담긴 뜻을 전해 드립니다</div>
+</section>
+
+<!-- 본문 -->
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">스프레드 <b>개요</b></span><span class="en">The Spread</span></div>
+  <div class="spread"><div class="sn">{{ spread.name }}</div><div class="sd">{{ spread.description }}</div></div>
+</section>
+
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">카드별 <b>리딩</b></span><span class="en">Card by Card</span></div>
+  {% for c in cards %}
+  <div class="card">
+    <div class="pic {% if c.orientation == '역위' %}rev{% endif %}" style="background-image:url('{{ c.image_url }}')"></div>
+    <div class="body">
+      <div class="ptag">{{ c.position }}</div>
+      <div class="nm"><span class="cn">{{ c.name }}</span>
+        <span class="ori {% if c.orientation == '역위' %}rev{% else %}up{% endif %}">{{ c.orientation }}</span></div>
+      <div class="kw">{% for k in c.keywords %}<span>{{ k }}</span>{% endfor %}</div>
+      <div class="mean">{{ c.meaning }}</div>
+      <div class="ai">{{ c.ai_reading }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+<section class="section">
+  <div class="shead"><span class="seal">❖</span><span class="n">종합 <b>리딩</b></span><span class="en">Overall</span></div>
+  <div class="overall"><p>{{ overall_summary }}</p></div>
+</section>
+
+<!-- 마무리 -->
+<section class="closing">
+  <div class="seal">❖</div>
+  <div class="ct">{{ closing.title }}</div>
+  <div class="cc">{{ closing.body }}</div>
+  <div class="brand">고삼타로 · GOSAM TAROT</div>
+</section>
+
+</body></html>

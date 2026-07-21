@@ -9,16 +9,24 @@ import json
 import os
 import re
 import smtplib
+from datetime import datetime, timedelta, timezone
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "templates")
+BACKEND_DIR = os.path.dirname(__file__)
+TEMPLATE_DIR = os.path.join(BACKEND_DIR, "templates")
+STATIC_DIR = os.path.join(BACKEND_DIR, "static")
 TEMPLATES = {"saju4": "report_saju.html", "tarot_spread": "report_tarot.html"}
 
 GMAIL_ADDRESS = os.environ.get("GMAIL_ADDRESS", "")
 GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
 GMAIL_SENDER_NAME = os.environ.get("GMAIL_SENDER_NAME", "고삼타로")
+KST = timezone(timedelta(hours=9))
+
+OHAENG_KR = {"갑": "목", "을": "목", "병": "화", "정": "화", "무": "토",
+             "기": "토", "경": "금", "신": "금", "임": "수", "계": "수"}
+OHAENG_EN = {"목": "wood", "화": "fire", "토": "earth", "금": "metal", "수": "water"}
 
 
 def _template_path(product_key: str):
@@ -35,7 +43,119 @@ def _extract_email(contact: str):
     return m.group(0) if m else None
 
 
-def _render_pdf(template_path: str, data: dict) -> bytes:
+def _asset_file_url(rel_path: str) -> str:
+    """`/static/...` 상대경로 → WeasyPrint가 읽을 수 있는 로컬 file:// 절대경로."""
+    clean = rel_path.lstrip("/")
+    if clean.startswith("static/"):
+        clean = clean[len("static/"):]
+    return "file://" + os.path.join(STATIC_DIR, clean)
+
+
+def _pillar_ctx(entry, position_label):
+    """pillars dict의 한 기둥({"korean":"경자","hanja":"庚子"}) → 템플릿 슬롯 형태.
+    entry가 None(시주 모름)이면 '미상' 플레이스홀더로 안전 처리."""
+    if not entry:
+        return {"position": position_label, "stem": "−", "branch": "−", "reading": "시주 미상",
+                "element": "−", "element_en": "unknown"}
+    stem_kr = entry["korean"][0]
+    elem_kr = OHAENG_KR.get(stem_kr, "−")
+    return {
+        "position": position_label,
+        "stem": entry["hanja"][0], "branch": entry["hanja"][1],
+        "reading": entry["korean"],
+        "element": elem_kr, "element_en": OHAENG_EN.get(elem_kr, "unknown"),
+    }
+
+
+def _find_reading(ai_readings, prefix):
+    for r in ai_readings:
+        if r.get("title", "").startswith(prefix):
+            return r["content"]
+    return ""
+
+
+PEAK_KIND = {"대박운": "good", "조심시기": "care", "연애운": "love", "결혼운": "marry"}
+
+
+def _build_saju_context(order, data: dict) -> dict:
+    birth = data.get("birth_input") or {}
+    gender_kr = "여성" if birth.get("gender") == "여" else ("남성" if birth.get("gender") == "남" else "")
+    birth_text = ""
+    if birth.get("year") and birth.get("month") and birth.get("day"):
+        birth_text = f"{birth['year']}년 {birth['month']}월 {birth['day']}일"
+        birth_text += f" {birth['hour']}시생" if birth.get("hour") else " (시간 미상)"
+
+    pillars = data.get("pillars") or {}
+    ai_readings = data.get("ai_readings") or []
+    fortune = data.get("fortune") or {}
+    peaks = fortune.get("peaks") or {}
+
+    luck_peaks = []
+    for label, kind in PEAK_KIND.items():
+        p = peaks.get(label)
+        if not p or "미확정" in p:
+            continue
+        reason = p.get("근거", "")
+        if p.get("주의"):
+            reason = f"{reason} (주의: {p['주의']})" if reason else p["주의"]
+        luck_peaks.append({"kind": kind, "label": label, "age": p["age"], "year": p["year"],
+                            "score": round(p["score"]), "reason": reason})
+
+    overall = data.get("ai_overall") or "지금 이 사주의 흐름을 마음에 새기고, 스스로에게 맞는 선택을 이어가시길 바랍니다."
+    closing_body = overall if len(overall) < 200 else (overall[:180].rsplit(".", 1)[0] + ".")
+
+    return {
+        "user": {"name": order.buyer_name, "birth_text": birth_text, "gender": gender_kr},
+        "issued_date": datetime.now(KST).strftime("%Y년 %m월 %d일"),
+        "cover_bg_url": _asset_file_url("/static/images/bg_hanji.jpg"),
+        "emblem_url": _asset_file_url("/static/images/em_saju_blue.jpg"),
+        "saju": {
+            "pillars": {
+                "year": _pillar_ctx(pillars.get("year"), "년주"),
+                "month": _pillar_ctx(pillars.get("month"), "월주"),
+                "day": _pillar_ctx(pillars.get("day"), "일주"),
+                "hour": _pillar_ctx(pillars.get("hour"), "시주"),
+            },
+            "daeun": _find_reading(ai_readings, "6.") or "대운 정보를 계산 중입니다.",
+            "seun": _find_reading(ai_readings, "7.") or "세운 정보를 계산 중입니다.",
+        },
+        "ai_readings": ai_readings,
+        "luck_peaks": luck_peaks,
+        "closing": {"title": "당신의 사주가 전하는 이야기", "body": closing_body},
+    }
+
+
+def _build_tarot_context(order, data: dict) -> dict:
+    cards = []
+    for c in (data.get("cards") or []):
+        cards.append({
+            "position": c.get("position_name", ""),
+            "name": c.get("card_name", ""),
+            "orientation": "역위" if c.get("reversed") else "정위",
+            "keywords": [c["keyword"]] if c.get("keyword") else [],
+            "meaning": c.get("meaning", ""),
+            # ai_reading이 meaning과 같은 문장 중복이 되지 않도록 — saju_meaning(사주연계)이
+            # 진짜 다른 내용일 때만 보조 문단으로 쓰고, 없으면 빈칸(카드의미 한 번만 노출).
+            "ai_reading": c.get("ai_reading") or (c.get("saju_meaning") if c.get("saju_meaning") != c.get("meaning") else ""),
+            "image_url": _asset_file_url(c["image"]) if c.get("image") else "",
+        })
+    overall = data.get("overall_summary") or "카드가 전하는 메시지를 마음에 새겨보시길 바랍니다."
+    closing_body = overall if len(overall) < 200 else (overall[:180].rsplit(".", 1)[0] + ".")
+
+    return {
+        "user": {"name": order.buyer_name},
+        "issued_date": datetime.now(KST).strftime("%Y년 %m월 %d일"),
+        "question": data.get("question", ""),
+        "cover_bg_url": _asset_file_url("/static/images/bg_hanji.jpg"),
+        "emblem_url": _asset_file_url("/static/images/em_tarot_blue.jpg"),
+        "spread": {"name": data.get("spread_name", ""), "description": f"{len(cards)}장 스프레드로 살펴본 흐름입니다."},
+        "cards": cards,
+        "overall_summary": overall,
+        "closing": {"title": "카드가 전하는 마지막 메시지", "body": closing_body},
+    }
+
+
+def _render_pdf(template_path: str, context: dict) -> bytes:
     # 무거운 라이브러리라 실사용 시점(템플릿 생기고 나서)에만 import —
     # 템플릿 없는 지금은 이 함수 자체가 안 불려서 부팅 비용도 없음.
     from jinja2 import Environment, FileSystemLoader
@@ -43,7 +163,7 @@ def _render_pdf(template_path: str, data: dict) -> bytes:
 
     env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
     template = env.get_template(os.path.basename(template_path))
-    html_str = template.render(**data)
+    html_str = template.render(**context)
     return HTML(string=html_str, base_url=TEMPLATE_DIR).write_pdf()
 
 
@@ -83,10 +203,9 @@ def send_report_email(order) -> bool:
     except json.JSONDecodeError:
         return False
 
-    pdf_bytes = _render_pdf(template_path, {
-        "order": {"buyer_name": order.buyer_name, "product_name": order.product_name},
-        **data,
-    })
+    builder = _build_saju_context if order.product_key == "saju4" else _build_tarot_context
+    context = builder(order, data)
+    pdf_bytes = _render_pdf(template_path, context)
     _send_email(
         to_email,
         subject=f"[고삼타로] {order.product_name} 결과가 도착했습니다",

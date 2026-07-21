@@ -215,7 +215,9 @@ export default function SajuFunnelPage({ onSelectTarot }) {
       })
       if (!res.ok) throw new Error('서버 응답 오류')
       const data = await res.json()
-      setSajuResult(data)
+      // PDF 리포트 표지에 생년월일 텍스트가 필요한데 /api/saju 응답엔 원본 입력값이 없어서
+      // 주문(reading_data)에 같이 실어보낼 수 있게 따로 붙여둠(계산결과와 별개 필드).
+      setSajuResult({ ...data, birth_input: { year: form.year, month: form.month, day: form.day, hour: form.hour, gender: form.gender } })
       go(3)
     } catch (e) {
       setError('사주 계산에 실패했습니다. 잠시 후 다시 시도해 주세요.')
