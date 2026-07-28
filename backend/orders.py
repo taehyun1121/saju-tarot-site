@@ -187,6 +187,16 @@ PRODUCTS = {
               "desc": "대박·조심·연애·결혼 4대 운 정확 연도 + 전체 풀이 PDF"},
     "tarot_spread": {"name": "타로 스프레드 전체 풀이", "amount": 7900,
                       "desc": "뽑은 스프레드 전체 카드 뜻 + 질문 종합 풀이 PDF"},
+    # 🔴 코코 추가(2026-07-24): 탈뚱이(talddung.com) 광고제거 결제 — 별개 프로덕트, 같은 계좌/백엔드 재사용.
+    "ads_removal": {"name": "광고 제거하기", "amount": 3900,
+                     "desc": "탈뚱이 앱 광고 영구 제거"},
+    # 🔴 코코 추가(2026-07-25): AI 전화상담(사주+타로 통합) — 상담봇 권고 가격대(기본 19,900~24,900 / 연장 5,000~7,000)
+    # 중 임시 확정값. 최종 금액은 형 결정 대기, 숫자만 바꾸면 됨. 시간 초과분은 별도 "연장권" 재구매로 처리
+    # (무통장입금 특성상 통화 후 자동 추가과금 불가 — AI가 통화 중 연장 필요시 재구매 안내).
+    "ai_consult_base": {"name": "AI 전화상담 (기본 15분)", "amount": 19900,
+                         "desc": "사주+타로 통합 AI 상담원과 실시간 전화상담 15분, 통화 후 맞춤 PDF 발송"},
+    "ai_consult_extend": {"name": "AI 전화상담 연장권 (5분)", "amount": 5900,
+                           "desc": "진행 중인 AI 전화상담 5분 연장"},
 }
 
 # ── 계좌/알림 설정 (전부 환경변수) ────────────────────────────
@@ -199,29 +209,51 @@ ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")   # 자동매칭 실패 시 수�
 
 # ── bankapi.co.kr 계좌조회 (입금 확인용) ─────────────────────
 # 무료플랜 월 500건 — 호출은 claim 시 + 60초 간격 재확인으로 절약
+#
+# 🔴 2026-07-28: 계좌 2개 지원(product_key로 라우팅) — bankapi.co.kr 계정 자체(API_KEY/
+# SECRET_KEY, 주민번호)는 하나만 있으면 되고, 조회 대상 "계좌"만 API 호출 파라미터로 바뀐다
+# (형이 직접 짚어준 포인트: "계좌는 따로지만 계정은 하나잖아" — 코드 구조상 맞는 지적).
+# 고삼타로(기본)=국민은행, 탈뚱이(ads_removal)=우리은행. 새 bankapi 키 발급 불필요.
 BANKAPI_BASE = os.environ.get("BANKAPI_BASE", "https://api.bankapi.co.kr")
 BANKAPI_API_KEY = os.environ.get("BANKAPI_API_KEY", "")
 BANKAPI_SECRET_KEY = os.environ.get("BANKAPI_SECRET_KEY", "")
-BANKAPI_BANK_CODE = os.environ.get("BANKAPI_BANK_CODE", "")        # NH | KB | WR
-BANKAPI_ACCOUNT_NUMBER = os.environ.get("BANKAPI_ACCOUNT_NUMBER", "")
-BANKAPI_ACCOUNT_PASSWORD = os.environ.get("BANKAPI_ACCOUNT_PASSWORD", "")
-BANKAPI_RESIDENT_PREFIX = os.environ.get("BANKAPI_RESIDENT_PREFIX", "")  # 주민번호 앞 6자리
+BANKAPI_RESIDENT_PREFIX = os.environ.get("BANKAPI_RESIDENT_PREFIX", "")  # 주민번호 앞 6자리(계좌 공용, 동일인)
 
-_bankapi_last_check: dict = {}   # order_id → epoch (호출 스로틀)
+_BANKAPI_ACCOUNTS = {
+    "default": {  # 고삼타로 — 국민은행
+        "bank_code": os.environ.get("BANKAPI_BANK_CODE", ""),        # NH | KB | WR
+        "account_number": os.environ.get("BANKAPI_ACCOUNT_NUMBER", ""),
+        "account_password": os.environ.get("BANKAPI_ACCOUNT_PASSWORD", ""),
+    },
+    "talddung": {  # 탈뚱이 — 우리은행
+        "bank_code": os.environ.get("BANKAPI_BANK_CODE_TALDDUNG", ""),
+        "account_number": os.environ.get("BANKAPI_ACCOUNT_NUMBER_TALDDUNG", ""),
+        "account_password": os.environ.get("BANKAPI_ACCOUNT_PASSWORD_TALDDUNG", ""),
+    },
+}
 
 
-def _bankapi_enabled():
-    return all([BANKAPI_API_KEY, BANKAPI_SECRET_KEY, BANKAPI_BANK_CODE,
-                BANKAPI_ACCOUNT_NUMBER, BANKAPI_ACCOUNT_PASSWORD, BANKAPI_RESIDENT_PREFIX])
+def _bankapi_account_for(product_key):
+    acc = _BANKAPI_ACCOUNTS["talddung"] if product_key == "ads_removal" else _BANKAPI_ACCOUNTS["default"]
+    if not all([acc["bank_code"], acc["account_number"], acc["account_password"]]):
+        acc = _BANKAPI_ACCOUNTS["default"]  # 탈뚱이 계좌 미설정 시 기존 동작으로 안전 폴백
+    return acc
 
 
-def _bankapi_fetch_today():
-    """오늘(±하루) 거래내역 조회. 실패 시 None."""
+def _bankapi_enabled(product_key=None):
+    acc = _bankapi_account_for(product_key)
+    return all([BANKAPI_API_KEY, BANKAPI_SECRET_KEY, BANKAPI_RESIDENT_PREFIX,
+                acc["bank_code"], acc["account_number"], acc["account_password"]])
+
+
+def _bankapi_fetch_today(product_key=None):
+    """오늘(±하루) 거래내역 조회. 실패 시 None. product_key로 조회할 계좌가 정해진다."""
+    acc = _bankapi_account_for(product_key)
     today = now_kst()
     payload = json.dumps({
-        "bankCode": BANKAPI_BANK_CODE,
-        "accountNumber": BANKAPI_ACCOUNT_NUMBER.replace("-", ""),
-        "accountPassword": BANKAPI_ACCOUNT_PASSWORD,
+        "bankCode": acc["bank_code"],
+        "accountNumber": acc["account_number"].replace("-", ""),
+        "accountPassword": acc["account_password"],
         "residentNumber": BANKAPI_RESIDENT_PREFIX,
         "startDate": (today - timedelta(days=1)).strftime("%Y%m%d"),
         "endDate": today.strftime("%Y%m%d"),
@@ -250,14 +282,14 @@ def _bankapi_fetch_today():
 def _check_bankapi(db, order, throttle_sec=60):
     """bankapi 거래내역에서 이 주문의 입금을 찾아 승인. 성공 시 True."""
     import time
-    if not _bankapi_enabled():
+    if not _bankapi_enabled(order.product_key):
         return False
     last = _bankapi_last_check.get(order.id, 0)
     if time.time() - last < throttle_sec:
         return False
     _bankapi_last_check[order.id] = time.time()
 
-    txs = _bankapi_fetch_today()
+    txs = _bankapi_fetch_today(order.product_key)
     if txs is None:
         return False
     for tx in txs:
