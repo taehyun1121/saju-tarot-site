@@ -3,46 +3,86 @@ JIJI     = ["자","축","인","묘","진","사","오","미","신","유","술","�
 HANJA_CG = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"]
 HANJA_JJ = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"]
 
-# 절기별 월지 (양력 월 → 절기 고려 간략 버전)
-# 실제 절기 날짜 하드코딩 (주요 기준일)
-JEOLGI = {
+# ── 절기 ────────────────────────────────────────────────────
+# 🔴 2026-08-11 전면 수정 (사주팔자봇 제보 → 코코 교차검증·수정).
+#    구판은 절기를 **매년 같은 날**로 박아뒀다: {1:(6,"축"), 2:(4,"인"), ...}
+#    실제 절기는 해마다 ±1~2일 움직인다(입춘만 해도 2/3~2/5). 그래서 경계 근처 생일자의
+#    월지가 틀어졌고, 년주는 아예 절기를 안 봐서 **입춘 전 생일자 전원이 한 해 밀렸다.**
+#    → sxtwl(수당력)에서 1900~2100 12절 정확 시각(KST)을 뽑아 `jeolgi_table.py`로 박았다.
+#      배포에 C확장 의존성을 늘리지 않으면서 정확도는 sxtwl과 같게 하려는 선택이다.
+try:
+    from jeolgi_table import JEOLGI_TABLE, JIE_JIJI
+except ImportError:      # 표가 없으면(부분 배포 등) 예전 근사치로 폴백
+    JEOLGI_TABLE, JIE_JIJI = None, None
+
+_FALLBACK_JEOLGI = {
     1:  (6,  "축"),  2:  (4,  "인"),  3:  (6,  "묘"),
     4:  (5,  "진"),  5:  (6,  "사"),  6:  (6,  "오"),
     7:  (7,  "미"),  8:  (7,  "신"),  9:  (8,  "유"),
     10: (8,  "술"),  11: (7,  "해"),  12: (7,  "자"),
 }
 
-def get_month_ji(month, day):
-    jeolgi_day, ji = JEOLGI[month]
-    if day < jeolgi_day:
-        prev_month = 12 if month == 1 else month - 1
-        _, ji = JEOLGI[prev_month]
-    return ji
+def _jie_index(year, month, day, hour=None, minute=0):
+    """이 시각이 그 해 12절 중 몇 번째 구간인가. 소한 전이면 -1(=전년 대설 구간=자월).
+    시각을 주면 절기 당일도 분 단위로 가른다(안 주면 그날 00:00로 본다)."""
+    if not JEOLGI_TABLE or year not in JEOLGI_TABLE:
+        return None
+    cur = (month, day, (hour or 0) * 60 + minute)
+    idx = -1
+    for i, (jm, jd_, jmin) in enumerate(JEOLGI_TABLE[year]):
+        if cur >= (jm, jd_, jmin):
+            idx = i
+        else:
+            break
+    return idx
 
-def year_pillar(year):
-    cg = CHEONGAN[(year-4)%10]
-    jj = JIJI[(year-4)%12]
-    return cg, jj, HANJA_CG[(year-4)%10] + HANJA_JJ[(year-4)%12]
+def get_month_ji(year, month, day, hour=None, minute=0):
+    i = _jie_index(year, month, day, hour, minute)
+    if i is None:                                    # 표 없음 → 근사 폴백
+        jeolgi_day, ji = _FALLBACK_JEOLGI[month]
+        if day < jeolgi_day:
+            ji = _FALLBACK_JEOLGI[12 if month == 1 else month - 1][1]
+        return ji
+    return "자" if i < 0 else JIE_JIJI[i]             # 소한 전 = 전년 대설 구간(자월)
 
-def month_pillar(year, month, day):
-    ji = get_month_ji(month, day)
+def saju_year(year, month=None, day=None, hour=None, minute=0):
+    """🔴 사주의 '해'는 1월 1일이 아니라 **입춘**에 바뀐다.
+    구판은 이걸 안 봐서 1/1~입춘 사이 생일자의 년주가 통째로 한 해 앞섰고,
+    월주도 오호둔의 년간이 틀어져 같이 어긋났다."""
+    if month is None or day is None:
+        return year
+    i = _jie_index(year, month, day, hour, minute)
+    if i is None:                                    # 표 없음 → 2/4 근사
+        return year - 1 if (month == 1 or (month == 2 and day < 4)) else year
+    return year - 1 if i < 1 else year               # 인덱스 1 = 입춘
+
+def year_pillar(year, month=None, day=None, hour=None, minute=0):
+    """month/day를 주면 입춘 경계를 반영한다(안 주면 구판처럼 calendar year 그대로)."""
+    y = saju_year(year, month, day, hour, minute)
+    return CHEONGAN[(y-4)%10], JIJI[(y-4)%12], HANJA_CG[(y-4)%10] + HANJA_JJ[(y-4)%12]
+
+def month_pillar(year, month, day, hour=None, minute=0):
+    ji = get_month_ji(year, month, day, hour, minute)
     ji_idx = JIJI.index(ji)
-    yg = CHEONGAN[(year-4)%10]
+    y = saju_year(year, month, day, hour, minute)    # 🔴 오호둔의 년간도 입춘 기준이어야 한다
+    yg = CHEONGAN[(y-4)%10]
     base = {"갑":2,"을":4,"병":6,"정":8,"무":0,"기":2,"경":4,"신":6,"임":8,"계":0}
     gan_idx = (base[yg] + (ji_idx - 2) % 12) % 10
-    cg = CHEONGAN[gan_idx]
-    return cg, ji, HANJA_CG[gan_idx] + HANJA_JJ[ji_idx]
+    return CHEONGAN[gan_idx], ji, HANJA_CG[gan_idx] + HANJA_JJ[ji_idx]
 
 def day_pillar(year, month, day):
+    """🔴 2026-08-11 상수 수정. 구판은 `(jd+6)%10`·`(jd+8)%12`라 **모든 날짜**가
+    정답보다 간+3·지+5 어긋났다(60갑자로 -7). 특정 날짜 문제가 아니라 전건 오답이었다.
+    sxtwl·korean_lunar_calendar 두 라이브러리와 교차검증해 확정(둘은 서로 100% 일치)."""
     y, m = year, month
     if m <= 2:
         y -= 1; m += 12
     A = y // 100
     B = 2 - A + A // 4
     jd = int(365.25*(y+4716)) + int(30.6001*(m+1)) + day + B - 1524
-    cg = CHEONGAN[(jd+6)%10]
-    jj = JIJI[(jd+8)%12]
-    return cg, jj, HANJA_CG[(jd+6)%10] + HANJA_JJ[(jd+8)%12]
+    gi = (jd-1) % 10
+    ji = (jd+1) % 12
+    return CHEONGAN[gi], JIJI[ji], HANJA_CG[gi] + HANJA_JJ[ji]
 
 HOUR_JI = [
     (23,1,"자"),(1,3,"축"),(3,5,"인"),(5,7,"묘"),
@@ -64,20 +104,75 @@ def hour_pillar(day_gan, hour):
     cg = CHEONGAN[gan_idx]
     return cg, ji, HANJA_CG[gan_idx] + HANJA_JJ[ji_idx]
 
-def calc_pillars(year, month, day, hour=None):
-    yp = year_pillar(year)
-    mp = month_pillar(year, month, day)
+def jeolgi_ambiguity(year, month, day, hour=None, minute=0):
+    """🔴 절기 당일에 태어났는데 **시간을 모르면** 월주(때로 년주)가 두 갈래로 갈린다.
+    없는 정보를 하나로 확정해 보여주면 안 된다 — 그건 정직게이트 위반이다
+    (2026-08-11 사주팔자봇 권고: "임의로 00:00으로 확정하지 말고 갈릴 수 있음을 고지").
+    카탈로그 원칙과도 같은 결이다 — 없앨 수 없는 불확실성은 **제거가 아니라 고지**로 다룬다.
+
+    @return None(모호하지 않음) 또는
+        {'jeolgi','time','before','after','note'}
+    """
+    if hour is not None:
+        return None                                   # 시간을 알면 갈릴 일이 없다
+    if not JEOLGI_TABLE or year not in JEOLGI_TABLE:
+        return None
+    try:
+        from jeolgi_table import JIE_NAMES
+    except ImportError:
+        JIE_NAMES = None
+
+    for i, (jm, jd_, jmin) in enumerate(JEOLGI_TABLE[year]):
+        if (jm, jd_) != (month, day) or jmin == 0:
+            continue
+        before = {"year": year_pillar(year, month, day, 0, 0)[2],
+                  "month": month_pillar(year, month, day, 0, 0)[2]}
+        after  = {"year": year_pillar(year, month, day, 23, 59)[2],
+                  "month": month_pillar(year, month, day, 23, 59)[2]}
+        if before == after:
+            return None
+        hh, mm = divmod(jmin, 60)
+        name = JIE_NAMES[i] if JIE_NAMES else "절기"
+        # 🔴 입춘이면 **년주까지** 갈린다(실측 2026-02-04: 乙巳 ↔ 丙午). 월주만 말하면
+        #    더 큰 차이를 숨기는 셈이다 — 년주가 바뀌면 십성·대운이 통째로 달라진다.
+        year_splits = before["year"] != after["year"]
+        what = "년주와 월주가" if year_splits else "월주가"
+        detail = (f"그 전이면 {before['year']}년 {before['month']}월, "
+                  f"그 후면 {after['year']}년 {after['month']}월로 봐요."
+                  if year_splits else
+                  f"그 전이면 {before['month']}월, 그 후면 {after['month']}월로 봐요.")
+        return {
+            "jeolgi": name,
+            "time": f"{hh:02d}:{mm:02d}",
+            "before": before,
+            "after": after,
+            "year_splits": year_splits,
+            "note": (f"이 날은 {name} 당일이에요. 절기가 바뀌는 시각이 한국시로 {hh}시 {mm:02d}분이라, "
+                     f"태어난 시간에 따라 {what} 갈립니다 — {detail} "
+                     + ("년주가 바뀌면 십성과 대운도 함께 달라져요. " if year_splits else "")
+                     + "태어난 시간을 알려주시면 어느 쪽인지 정확히 잡아드릴게요."),
+        }
+    return None
+
+def calc_pillars(year, month, day, hour=None, minute=0):
+    # 🔴 year_pillar에 month/day를 넘겨야 입춘 경계가 반영된다(구판은 year만 넘겨서
+    #    1/1~입춘 생일자의 년주·월주가 통째로 틀렸다).
+    yp = year_pillar(year, month, day, hour, minute)
+    mp = month_pillar(year, month, day, hour, minute)
     dp = day_pillar(year, month, day)
     hp = hour_pillar(dp[0], hour) if hour is not None else None
     return yp, mp, dp, hp
 
 def calc_daeun(year, month, day, gender):
-    """대운 계산 (간략 버전)"""
-    yang_year = ((year - 4) % 10) % 2 == 0
+    """대운 계산 (간략 버전)
+    🔴 2026-08-11: 순역 판정의 년간도 **입춘 기준**이어야 한다. 구판은 calendar year로
+    양음을 갈라서, 입춘 전 생일자는 대운 방향이 통째로 반대로 나왔다."""
+    sy = saju_year(year, month, day)
+    yang_year = ((sy - 4) % 10) % 2 == 0
     forward = (yang_year and gender == "남") or (not yang_year and gender == "여")
-    _, _, month_hanja = month_pillar(year, month, day)
-    mp_gan_idx = CHEONGAN.index(month_pillar(year, month, day)[0])
-    mp_ji_idx  = JIJI.index(month_pillar(year, month, day)[1])
+    mp = month_pillar(year, month, day)
+    mp_gan_idx = CHEONGAN.index(mp[0])
+    mp_ji_idx  = JIJI.index(mp[1])
     daeun = []
     for i in range(1, 9):
         if forward:
