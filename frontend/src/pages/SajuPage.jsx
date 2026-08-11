@@ -185,7 +185,7 @@ function ResultCard({ result, person, index, historyId, onGoToTarot }) {
           <button onClick={() => setTab('ai')}
             className={`flex-1 min-w-[80px] py-2 rounded-lg text-sm font-medium border transition-all
               ${tab === 'ai' ? 'bg-p-400 border-p-300 text-white' : 'bg-transparent border-p-600 text-p-200 hover:border-p-400'}`}>
-            ✨ Gemini 해석
+            ✨ 상세 풀이
           </button>
         )}
         {result.decade_readings?.length > 0 && (
@@ -202,11 +202,11 @@ function ResultCard({ result, person, index, historyId, onGoToTarot }) {
         </button>
       </div>
 
-      {/* Gemini 해석 탭 */}
+      {/* 상세 풀이 탭 */}
       {tab === 'ai' && result.ai_available && (
         <div className="flex flex-col gap-3">
           <div className="bg-app-dark border border-p-700 rounded-xl p-4">
-            <h4 className="text-p-50 text-sm mb-3">✨ Gemini 사주 해석</h4>
+            <h4 className="text-p-50 text-sm mb-3">✨ 상세 사주 풀이</h4>
             <Accordion items={result.ai_readings} />
           </div>
           {result.ai_overall && (
