@@ -5,19 +5,18 @@ import TarotPage from './pages/TarotPage'
 import HistoryPage from './pages/HistoryPage'
 import PremiumPage from './pages/PremiumPage'
 import SajuFunnelPage from './pages/SajuFunnelPage'
-import TarotFunnelPage from './pages/TarotFunnelPage'
 import { DomainStripBanner } from './components/StripBanners'
 import EventModal from './components/EventModal'
 
 // 🔴 2026-07-19 몰입 퍼널(블루골드 신당) 전환 — 디자인봇 확정본 구현.
 //   기존 탭UI는 ?legacy 로만 접근되는 폴백으로 보존(롤백 안전장치).
+// 🔴 2026-08-12 — 사주/타로 갈림길(showTarot 토글) 제거. 형 확정: 하나의 흐름으로 합쳐졌으니
+//   SajuFunnelPage 하나가 유일한 진입점이다(입력→스포→유형선택→카드뽑기→통합결론).
+//   TarotFunnelPage.jsx는 지우지 않고 남겨뒀다 — 참조는 여기서만 빠졌다.
 function FunnelApp() {
-  const [showTarot, setShowTarot] = useState(false)
   return (
     <>
-      {showTarot
-        ? <TarotFunnelPage onBack={() => setShowTarot(false)} />
-        : <SajuFunnelPage onSelectTarot={() => setShowTarot(true)} />}
+      <SajuFunnelPage />
       <EventModal />
     </>
   )

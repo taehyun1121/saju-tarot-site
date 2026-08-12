@@ -6,33 +6,17 @@ import PcIntroScreen from '../components/PcIntroScreen'
 import MobileIntroScreen from '../components/MobileIntroScreen'
 import UnifiedPaywall from '../components/UnifiedPaywall'
 import useIsDesktop from '../hooks/useIsDesktop'
-import imgEmTarot from '../assets/funnel/em_tarot_blue.jpg'
-import imgEmSaju from '../assets/funnel/em_saju_blue.jpg'
-import imgEmChong from '../assets/funnel/em_chong_blue.jpg'
 import imgHallWide from '../assets/funnel/hall_wide_1.jpg'
-import imgTileTarot from '../assets/funnel/tile_tarot.jpg'
-import imgTileSaju from '../assets/funnel/tile_saju.jpg'
-import imgTileChong from '../assets/funnel/tile_chong.jpg'
 
-// 고삼타로 몰입 퍼널 — 랜딩→선택→입력→스포(대박·조심·연애·결혼)→페이월
+// 고삼타로 몰입 퍼널 — 랜딩→입력→스포(대박·조심·연애·결혼)→유형선택→카드뽑기→통합결론
 // 출처: consulting/gosam_funnel/funnel_blue.html (디자인봇 확정, gate:gosam_funnel_reskin 7/7) — 블루골드 신당 리스킨(2026-07-19)
+// 🔴 2026-08-12 — "세 개의 문"(타로/사주/총운) 선택 화면 제거. 형 확정: 사주+타로가 하나의
+//   흐름으로 합쳐졌으니 갈림길이 없어야 한다. 인트로 다음 바로 입력으로 들어간다.
+//   (구 TarotFunnelPage 단독 진입로도 같이 사라짐 — App.jsx 참고, 파일 자체는 안 지움)
 // 🔴 정직한 범위: 입력→백엔드 /api/saju 실연동됨. 4대운 피크 전용 엔진(saju_fortune_curve.py)은
 //   '대박운'·'조심할 시기' 카드의 헤드라인연도+그래프만 실데이터 연동 완료(spoSpecs 함수 주석 참고).
 //   '연애운'·'결혼운'은 원 디자인의 페이월 블러 의도와 엔진 데이터 정밀도가 안 맞아 데모 카피 유지(미완, 디자인봇 판단 필요).
 //   결제·PDF 배달은 버튼만 있고 미연동(후속).
-
-const TILES = [
-  { id: 'tarot', title: '타로의 문 — 지금 이 순간', desc: '당장 궁금한 그 일의 흐름', img: imgEmTarot },
-  { id: 'saju', title: '사주의 문 — 타고난 판', desc: '재물·연애·시기의 큰 그림', img: imgEmSaju },
-  { id: 'chong', title: '올해 총운의 문', desc: '올 한 해, 열리고 닫히는 문', img: imgEmChong },
-]
-
-// PC 와이드 선택화면용 리치 썸네일(모바일 TILES와 이미지·문구 분할만 다름, 내용은 동일)
-const PC_TILES = [
-  { id: 'tarot', h3: '타로의 문', desc: '지금 이 순간, 당장 궁금한 그 일의 흐름', img: imgTileTarot },
-  { id: 'saju', h3: '사주의 문', desc: '타고난 판 — 재물·연애·시기의 큰 그림', img: imgTileSaju },
-  { id: 'chong', h3: '올해 총운의 문', desc: '올 한 해, 열리고 닫히는 문', img: imgTileChong },
-]
 
 // 통합 흐름 [3단계] 유형 선택(다리) 카드 — 08-11 디자인봇 확정(gosam_unified_funnel/설계.md 결정3).
 // question은 /api/tarot/draw에 그대로 실려가 overall_summary 톤에 반영된다.
@@ -217,8 +201,8 @@ const Top = ({ onBack }) => (
   </>
 )
 
-export default function SajuFunnelPage({ onSelectTarot }) {
-  // 0=랜딩 1=선택 2=입력 3~6=스포 7=오행티저 8=인생그래프티저 9=유형선택(다리) 10=통합 결론 페이월
+export default function SajuFunnelPage() {
+  // 0=랜딩 1=(미사용, 구 "세 개의 문") 2=입력 3~6=스포 7=오행티저 8=인생그래프티저 9=유형선택(다리) 10=통합 결론 페이월
   // 🔴 2026-08-12 형 확정(08-11 합의 실행): 사주 따로/타로 따로가 아니라 하나의 흐름 — 9~10이
   //   기존 "사주 단독 ₩9,900 페이월"을 대체한다. 상세: gosam_unified_funnel/설계.md
   const [screen, setScreen] = useState(0)
@@ -242,7 +226,10 @@ export default function SajuFunnelPage({ onSelectTarot }) {
     if (v.length >= maxLen && nextRef?.current) nextRef.current.focus()
   }
 
-  const go = (n) => setScreen(Math.max(0, Math.min(10, n)))
+  // screen 1("세 개의 문")은 화면이 없어졌지만 TheaterFrame의 이전 버튼·←키·휠은 무조건
+  // go(screen-1)을 부른다(2026-08-12 확인) — 그대로 두면 screen 2에서 뒤로 갈 때 빈 화면에 걸린다.
+  // 1을 건드릴 때만 0으로 보정해 죽은 화면을 아예 안 보이게 한다.
+  const go = (n) => setScreen(n === 1 ? 0 : Math.max(0, Math.min(10, n)))
   const specs = sajuResult ? spoSpecs(sajuResult) : spoSpecs(null)
   const isDesktop = useIsDesktop()
   const ohaeng = sajuResult?.ohaeng || []
@@ -362,7 +349,7 @@ export default function SajuFunnelPage({ onSelectTarot }) {
   if (screen === 0 && isDesktop) {
     return (
       <div className="funnel-root">
-        <PcIntroScreen onEnter={() => go(1)} onBack={() => {}} />
+        <PcIntroScreen onEnter={() => go(2)} onBack={() => {}} />
       </div>
     )
   }
@@ -370,36 +357,19 @@ export default function SajuFunnelPage({ onSelectTarot }) {
   if (screen === 0 && !isDesktop) {
     return (
       <div className="funnel-root">
-        <MobileIntroScreen onEnter={() => go(1)} />
+        <MobileIntroScreen onEnter={() => go(2)} />
       </div>
     )
   }
 
-  // PC 와이드 화면(선택·입력·스포·페이월) — 출처: funnel_pc_screens.html (gate:gosam_pc_screens 등 7/7)
+  // PC 와이드 화면(입력·스포·페이월) — 출처: funnel_pc_screens.html (gate:gosam_pc_screens 등 7/7)
+  // 🔴 2026-08-12 — "세 개의 문" 선택 화면(구 screen 1) 제거. 형 확정: 사주+타로가 하나의 흐름으로
+  //   합쳐졌으니 갈림길 자체가 없어야 한다. 인트로 다음 바로 입력(screen 2)으로 들어간다.
   if (isDesktop) {
-    if (screen === 1) {
-      return (
-        <div className="funnel-root">
-          <PcWide onBack={() => go(0)}>
-            <span className="ey">무엇이 궁금하십니까</span>
-            <div className="htitle">세 개의 <span className="r">문</span> 앞에 서 계십니다</div>
-            <div className="hdesc">고르시는 문 안의 스포부터, 바로 보여드립니다.</div>
-            <div className="tiles">
-              {PC_TILES.map(t => (
-                <button key={t.id} className="tile" onClick={() => t.id === 'tarot' ? onSelectTarot?.() : go(2)}>
-                  <div className="thumb" style={{ backgroundImage: `url('${t.img}')` }} />
-                  <div className="foot"><h3 className="serif">{t.h3}</h3><p>{t.desc}</p><span className="go">들어가기 ›</span></div>
-                </button>
-              ))}
-            </div>
-          </PcWide>
-        </div>
-      )
-    }
     if (screen === 2) {
       return (
         <div className="funnel-root">
-          <PcWide onBack={() => go(1)}>
+          <PcWide onBack={() => go(0)}>
             <span className="ey">당신을 알려 주십시오</span>
             <div className="htitle" style={{ fontSize: 38, marginBottom: 26 }}>당신 <span className="g">사주의 문</span>을 열 열쇠입니다</div>
             <div className="panel">
@@ -536,32 +506,10 @@ export default function SajuFunnelPage({ onSelectTarot }) {
     <div className="funnel-root">
       <TheaterFrame screen={screen} total={11} onPrev={() => go(screen - 1)} onNext={() => go(screen + 1)}>
       <div className="ph">
-        {screen === 1 && (
-          <>
-            <div className="stage" /><div className="texture" /><div className="ambient" />
-            <Top onBack={() => go(0)} />
-            <div className="frameborder" /><div className="seal" style={{ right: 26, top: 92 }}>❖</div>
-            <div className="content">
-              <span className="ey">무엇이 궁금하십니까</span>
-              <div className="htitle">세 개의 <span className="r">문</span> 앞에<br />서 계십니다</div>
-              <div className="hdesc">고르시는 문 안의 스포부터, 바로 보여드립니다.</div>
-              {TILES.map(t => (
-                <button key={t.id} className="tile" style={{ backgroundImage: `url('${t.img}')` }}
-                  onClick={() => t.id === 'tarot' ? onSelectTarot?.() : go(2)}>
-                  <div className="tsc" />
-                  <div className="tmeta"><h3>{t.title}</h3><p>{t.desc}</p></div>
-                  <span className="tarw">들어가기 ›</span>
-                </button>
-              ))}
-              <div className="subline" style={{ marginTop: 4 }}>어느 문 앞에 서시겠습니까</div>
-            </div>
-          </>
-        )}
-
         {screen === 2 && (
           <>
             <div className="stage" /><div className="texture" />
-            <Top onBack={() => go(1)} />
+            <Top onBack={() => go(0)} />
             <div className="frameborder" /><div className="seal" style={{ right: 26, top: 92 }}>❖</div>
             <div className="content">
               <span className="ey">당신을 알려 주십시오</span>
