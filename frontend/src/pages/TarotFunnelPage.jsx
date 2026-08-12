@@ -5,6 +5,9 @@ import TheaterFrame from '../components/TheaterFrame'
 import ShuffleFan from '../components/ShuffleFan'
 import OrderModal from '../components/OrderModal'
 import PromoBanner from '../components/PromoBanner'
+// 🔴 2026-08-11 — 실산출 문장에서 핵심 토큰만 가리는 공용 유틸(A안).
+//    모바일·PC 페이월이 같은 방식을 쓰게 해서 "한쪽만 고쳐지는" 사고를 막는다.
+import { Redacted } from '../components/UnifiedPaywall'
 import useIsDesktop from '../hooks/useIsDesktop'
 import imgHallWide from '../assets/funnel/hall_wide_1.jpg'
 
@@ -312,16 +315,32 @@ export default function TarotFunnelPage({ onBack: onExit }) {
               <Top onBack={() => setStage('reveal')} />
               <div className="frameborder" /><div className="seal" style={{ right: 26, top: 92 }}>❖</div>
               <div className="content">
-                <span className="ey">여기까지가 무료 스포입니다</span>
-                <div className="htitle">{drawResult.spread_name}, <span className="g">전체 뜻</span>과 결론은<br />신당 <span className="r">안에서</span></div>
-                <div className="hdesc">어느 카드가, 무슨 말을 하는지. 흐릿한 건 제가 다 걷어 드립니다.</div>
-                <div className="locked"><div className="blurcard">{drawResult.overall_summary}</div><div className="lockover">🔒</div></div>
+                {/* 🔴 2026-08-11 A안 이식 (형 "가린 A안으로 가자")
+                    이전: overall_summary를 filter:blur(6px)로 **통째로** 덮고 🔒 → 값을 못 보여줌
+                    지금: 실제 결과를 **읽히게** 두고 핵심 토큰(달·연도·수치)만 Rd로 가린다.
+                    전문은 그대로 DOM에 남는다 = 크롤러가 읽는다(소프트 페이월 업계 표준). */}
+                <span className="ey">네 카드가 이렇게 나왔어</span>
+                <div className="htitle"><span className="g">지금 흐름</span>은 열어줄게<br />깊은 결론만 <span className="r">신당 안에서</span></div>
+                <div className="hdesc">
+                  <span className="tag free">무료</span>흐름 진단 <span className="tag lock">유료</span>카드 뜻 · 정확한 달 · 처방
+                </div>
+                <div className="axis tarot">
+                  <div className="h">🔮 카드가 짚는 지금 <span className="free">· 무료</span></div>
+                  <p><Redacted text={drawResult.overall_summary} tokens={drawResult.redact} /></p>
+                  <div className="ufade" />
+                </div>
+                <div className="utoc">
+                  <div className="row"><span className="t">1. 지금 흐름 진단</span><span className="v">열림 ✓</span></div>
+                  <div className="row"><span className="t">2. 카드 {nCards}장 각각의 뜻</span><span className="lk">🔒</span></div>
+                  <div className="row"><span className="t">3. 관계가 풀리는 <b>정확한 시기</b></span><span className="lk">🔒</span></div>
+                  <div className="row"><span className="t">4. 지금 할 <b>구체적 행동</b></span><span className="lk">🔒</span></div>
+                </div>
                 <PromoBanner />
-                <div className="pricebox"><div className="p">₩ 7,900</div><div className="pn">{nCards}장 스프레드 전체 뜻 + 질문 종합 풀이</div><div className="mailrow">✉️ 완성 PDF, 이메일·카톡으로 배달</div></div>
-                <button className="cta" onClick={() => setOrderOpen(true)}>전체 카드 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
+                <div className="pricebox"><div className="p">₩ 9,900</div><div className="pn">잠긴 2·3·4 전체 + 완성 PDF 배달</div><div className="mailrow">✉️ 완성 PDF, 이메일·카톡으로 배달</div></div>
+                <button className="cta" onClick={() => setOrderOpen(true)}>깊은 결론 3개 열기<small>무통장 안전결제 · 24시간 내 배달</small></button>
                 <button className="subline" style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setStage('select')}>처음으로 돌아가기</button>
               </div>
-              <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="tarot_spread" amount={7900} productName={`${drawResult.spread_name} 전체 풀이`} readingData={drawResult} />
+              <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="tarot_spread" amount={9900} productName={`${drawResult.spread_name} 전체 풀이`} readingData={drawResult} />
             </>
           )}
         </div>
@@ -418,15 +437,30 @@ export default function TarotFunnelPage({ onBack: onExit }) {
       return (
         <div className="funnel-root">
           <PcWideTarot onBack={() => setStage('reveal')}>
-            <span className="ey">여기까지가 무료 스포입니다</span>
-            <div className="htitle" style={{ fontSize: 36, marginBottom: 26 }}>{drawResult.spread_name}, <span className="g">전체 뜻</span>과 결론은 신당 <span className="r">안에서</span></div>
-            <div className="hdesc" style={{ marginBottom: 18 }}>어느 카드가, 무슨 말을 하는지. 흐릿한 건 제가 다 걷어 드립니다.</div>
-            <div className="locked"><div className="blur">{drawResult.overall_summary}</div><div className="ov">🔒</div></div>
+            {/* 🔴 2026-08-11 A안 이식 — 모바일(318행 근처)과 **같은 방식**으로 맞춘다.
+                이전엔 모바일 .blurcard/.lockover, PC .blur/.ov 로 클래스가 갈려 있어
+                한쪽만 고쳐지는 사고가 반복됐다. 이제 둘 다 .axis + Redacted 를 쓴다. */}
+            <span className="ey">네 카드가 이렇게 나왔어</span>
+            <div className="htitle" style={{ fontSize: 36, marginBottom: 26 }}><span className="g">지금 흐름</span>은 열어줄게 · 깊은 결론만 <span className="r">신당 안에서</span></div>
+            <div className="hdesc" style={{ marginBottom: 18 }}>
+              <span className="tag free">무료</span>흐름 진단 <span className="tag lock">유료</span>카드 뜻 · 정확한 달 · 처방
+            </div>
+            <div className="axis tarot">
+              <div className="h">🔮 카드가 짚는 지금 <span className="free">· 무료</span></div>
+              <p><Redacted text={drawResult.overall_summary} tokens={drawResult.redact} /></p>
+              <div className="ufade" />
+            </div>
+            <div className="utoc">
+              <div className="row"><span className="t">1. 지금 흐름 진단</span><span className="v">열림 ✓</span></div>
+              <div className="row"><span className="t">2. 카드 {nCards}장 각각의 뜻</span><span className="lk">🔒</span></div>
+              <div className="row"><span className="t">3. 관계가 풀리는 <b>정확한 시기</b></span><span className="lk">🔒</span></div>
+              <div className="row"><span className="t">4. 지금 할 <b>구체적 행동</b></span><span className="lk">🔒</span></div>
+            </div>
             <PromoBanner />
-            <div className="pricebox"><div className="p">₩ 7,900</div><div className="pn">{nCards}장 스프레드 전체 뜻 + 질문 종합 풀이 · 완성 PDF 배달</div></div>
-            <button className="cta serif" style={{ width: 520 }} onClick={() => setOrderOpen(true)}>전체 카드 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
+            <div className="pricebox"><div className="p">₩ 9,900</div><div className="pn">잠긴 2·3·4 전체 + 완성 PDF 배달</div></div>
+            <button className="cta serif" style={{ width: 520 }} onClick={() => setOrderOpen(true)}>깊은 결론 3개 열기<small>무통장 안전결제 · 24시간 내 배달</small></button>
             <button className="pcback" onClick={() => setStage('select')}>처음으로 돌아가기</button>
-            <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="tarot_spread" amount={7900} productName={`${drawResult.spread_name} 전체 풀이`} readingData={drawResult} />
+            <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="tarot_spread" amount={9900} productName={`${drawResult.spread_name} 전체 풀이`} readingData={drawResult} />
           </PcWideTarot>
         </div>
       )
