@@ -147,13 +147,13 @@ function realGraphFrom(window) {
   return { pts, yrs, peakX }
 }
 
-// 4대운 화면 스펙 — 그래프/헤드라인 연도는 실데이터(fortune.peak_windows) 연동됨.
-// 🔴 정직한 범위: '대박운'·'조심할 시기'는 디자인상 원래도 정확 연도를 무료로 보여주는
-//   카드라 실제 계산 연도로 교체함. '연애운'·'결혼운'은 원 디자인이 계절/정확연도를
-//   의도적으로 블러(페이월 유도) 처리해뒀는데, 백엔드 엔진은 월·계절 단위 데이터를 안 주고
-//   (지어내기 금지 원칙) 정확 연도만 주기 때문에 그대로 노출하면 블러 의미가 없어짐 —
-//   그래서 이 두 카드는 시안 데모 카피/그래프를 그대로 유지(디자인봇 판단 필요, 미완).
-//   reading 문단(구체 서사)은 엔진이 안 주는 정보라 전 카드 데모 카피 유지.
+// 4대운 화면 스펙 — 그래프/헤드라인 연도는 실데이터(fortune.peak_windows/peaks) 연동됨.
+// 🔴 2026-08-12 수정: 이전 주석은 "엔진이 연애/결혼 연도를 안 준다"고 적혀 있었는데 틀렸다.
+//   saju_fortune_curve.py의 peaks['연애운']/peaks['결혼운']이 대박운/조심시기와 동일한 구조로
+//   {age,year,score}를 계산해서 준다(도화·재관 조건 충족 시). 조건 미충족이면 {"미확정":...}.
+//   그동안 spoSpecs()가 이 값을 그냥 안 읽고 데모 카피를 하드코딩해온 게 실제 버그였다.
+//   → 4카드 전부 동일 패턴(실연도 있으면 노출, 없으면 "미확정" 문구)으로 통일.
+//   reading 문단(구체 서사)은 엔진이 안 주는 정보라 전 카드 데모 카피 유지(정직게이트 유지).
 function spoSpecs(sajuResult) {
   const windows = sajuResult?.fortune?.peak_windows
   const peaks = sajuResult?.fortune?.peaks
@@ -161,6 +161,10 @@ function spoSpecs(sajuResult) {
   const bigLuckYear = peaks?.['대박운']?.year
   const risk = realGraphFrom(windows?.['조심시기'])
   const riskYear = peaks?.['조심시기']?.year
+  const love = realGraphFrom(windows?.['연애운'])
+  const loveYear = peaks?.['연애운']?.year
+  const marriage = realGraphFrom(windows?.['결혼운'])
+  const marriageYear = peaks?.['결혼운']?.year
 
   return [
     {
@@ -180,13 +184,19 @@ function spoSpecs(sajuResult) {
       reading: <>흔들림의 불씨는 돈이 아니라 <b>사람</b>입니다. 그중에서도 <Rd>▓▓ 관계</Rd>. 고비는 <Rd>▓월 ▓주</Rd>에 몰려 있으니, 그때 <Rd>▓▓▓</Rd>만 삼가시면 큰 손해는 피하십니다.</>,
     },
     {
-      badge: '연애운', ico: '💗', hl: '내년 여름,', rest: '묶였던 인연이 풀립니다',
-      yrs: ["'24", "'25", "'26", "'27", "'28"], pts: [[0, 80], [84, 70], [168, 44], [252, 18], [336, 34]], peakX: 252, color: '#d46a8a',
+      badge: '연애운', ico: '💗',
+      hl: loveYear ? `${loveYear}년,` : '도화가 발동하는 해,', rest: '묶였던 인연이 풀립니다',
+      yrs: love?.yrs || ["'24", "'25", "'26", "'27", "'28"],
+      pts: love?.pts || [[0, 80], [84, 70], [168, 44], [252, 18], [336, 34]],
+      peakX: love?.peakX ?? 252, color: '#d46a8a',
       reading: <>그 사람은 낯선 이가 아니라, 이미 <Rd>▓▓에서 스친</Rd> 얼굴입니다. 결은 <Rd>▓▓</Rd> 계열. 먼저 손 내미는 쪽은 <Rd>▓쪽</Rd>이 유리하고, 신호는 <Rd>▓월</Rd>부터 잡힙니다.</>,
     },
     {
-      badge: '결혼운', ico: '💍', hl: '20▓▓년,', rest: '혼사의 문이 열립니다',
-      yrs: ["'26", "'27", "'28", "'29", "'30"], pts: [[0, 88], [84, 60], [168, 50], [252, 24], [336, 16]], peakX: 336, color: '#e0b84a',
+      badge: '결혼운', ico: '💍',
+      hl: marriageYear ? `${marriageYear}년,` : '일지합이 이루어지는 해,', rest: '혼사의 문이 열립니다',
+      yrs: marriage?.yrs || ["'26", "'27", "'28", "'29", "'30"],
+      pts: marriage?.pts || [[0, 88], [84, 60], [168, 50], [252, 24], [336, 16]],
+      peakX: marriage?.peakX ?? 336, color: '#e0b84a',
       reading: <>상대의 결은 <Rd>▓▓하고 ▓▓한</Rd> 사람입니다. 적기는 <Rd>▓월경</Rd>. 다만 그 전에 <Rd>▓▓</Rd> 한 가지를 매듭짓지 않으시면, 문이 열려도 들어서기 어렵습니다.</>,
     },
   ]
@@ -446,12 +456,14 @@ export default function SajuFunnelPage({ onSelectTarot }) {
             <span className="ey">여기까지가 무료 스포입니다</span>
             <div className="htitle" style={{ fontSize: 36, marginBottom: 26 }}>정확한 <span className="g">연도</span>와 전체 풀이는 신당 <span className="r">안에서</span></div>
             <div className="hdesc" style={{ marginBottom: 18 }}>언제·얼마나·어떻게. 흐릿한 건 제가 다 걷어 드립니다.</div>
-            {/* 🔴 2026-08-12 A안 이식 — 모바일(614행 근처)과 같은 방식. 연애·결혼은 엔진이
-                월·계절 정밀도를 안 줘서 가짜 날짜를 못 만든다 — 디자인봇 판단 대기 중. */}
+            {/* 🔴 2026-08-12 수정 — spoSpecs()와 동일 전제로 통일. peaks['연애운']/['결혼운']도
+                대박운/조심시기와 같은 구조로 실연도를 준다(엔진 데이터 없다는 예전 판단 오류였음,
+                [[feedback_verify_code_claims]]). 조건 미충족 시엔 "미확정"이라 년도가 없을 수 있어
+                그 경우만 "발동하는 해" 식 정직 표현으로 대체. */}
             <div className="locked"><div className="blur">
               {sajuResult?.fortune?.peaks?.['대박운']?.year ? `${sajuResult.fortune.peaks['대박운'].year}년,` : '올해,'} 재물문이 크게 열리고, <Rd>▓▓</Rd>를 통해 들어옵니다.
               {sajuResult?.fortune?.peaks?.['조심시기']?.year && ` ${sajuResult.fortune.peaks['조심시기'].year}년엔 `}<Rd>▓▓ 관계</Rd>로 한 번 흔들리십니다.
-              연애·결혼 흐름도 함께 열립니다.
+              {' '}{sajuResult?.fortune?.peaks?.['연애운']?.year ? `${sajuResult.fortune.peaks['연애운'].year}년엔` : '도화가 발동하는 해엔'} <Rd>▓▓</Rd> 인연이 풀리고, {sajuResult?.fortune?.peaks?.['결혼운']?.year ? `${sajuResult.fortune.peaks['결혼운'].year}년엔` : '일지합이 이루어지는 해엔'} <Rd>▓▓</Rd> 혼사의 문이 열립니다.
             </div><div className="ov">🔒</div></div>
             <PromoBanner />
             <div className="pricebox"><div className="p">₩ 9,900</div><div className="pn">4대 운(대박·조심·연애·결혼) 정확 연도 + 전체 풀이 · 완성 PDF 배달</div></div>
@@ -617,14 +629,14 @@ export default function SajuFunnelPage({ onSelectTarot }) {
               <span className="ey">여기까지가 무료 스포입니다</span>
               <div className="htitle">정확한 <span className="g">연도</span>와 전체 풀이는<br />신당 <span className="r">안에서</span></div>
               <div className="hdesc">언제·얼마나·어떻게. 흐릿한 건 제가 다 걷어 드립니다.</div>
-              {/* 🔴 2026-08-12 A안 이식 — TarotFunnelPage와 같은 방식(실데이터+Rd 마스킹).
-                  연애·결혼은 엔진이 월·계절 정밀도를 안 줘서(년도만 줌) 가짜 날짜를 못 만든다.
-                  대박운·조심시기는 실제 연도를 노출(spoSpecs와 동일 원칙), 연애·결혼은 날짜를
-                  지어내지 않고 "함께 열린다"고만 정직하게 서술 — 디자인봇 판단 대기 중. */}
+              {/* 🔴 2026-08-12 수정 — spoSpecs()와 동일 전제로 통일. peaks['연애운']/['결혼운']도
+                  대박운/조심시기와 같은 구조로 실연도를 준다(엔진 데이터 없다는 예전 판단 오류였음,
+                  [[feedback_verify_code_claims]]). 조건 미충족 시엔 "미확정"이라 년도가 없을 수 있어
+                  그 경우만 "발동하는 해" 식 정직 표현으로 대체. */}
               <div className="locked"><div className="blurcard">
                 {sajuResult?.fortune?.peaks?.['대박운']?.year ? `${sajuResult.fortune.peaks['대박운'].year}년,` : '올해,'} 재물문이 크게 열리고, <Rd>▓▓</Rd>를 통해 들어옵니다.
                 {sajuResult?.fortune?.peaks?.['조심시기']?.year && ` ${sajuResult.fortune.peaks['조심시기'].year}년엔 `}<Rd>▓▓ 관계</Rd>로 한 번 흔들리십니다.
-                연애·결혼 흐름도 함께 열립니다.
+                {' '}{sajuResult?.fortune?.peaks?.['연애운']?.year ? `${sajuResult.fortune.peaks['연애운'].year}년엔` : '도화가 발동하는 해엔'} <Rd>▓▓</Rd> 인연이 풀리고, {sajuResult?.fortune?.peaks?.['결혼운']?.year ? `${sajuResult.fortune.peaks['결혼운'].year}년엔` : '일지합이 이루어지는 해엔'} <Rd>▓▓</Rd> 혼사의 문이 열립니다.
               </div><div className="lockover">🔒</div></div>
               <PromoBanner />
               <div className="pricebox"><div className="p">₩ 9,900</div><div className="pn">4대 운(대박·조심·연애·결혼) 정확 연도 + 전체 풀이</div><div className="mailrow">✉️ 완성 PDF, 이메일·카톡으로 배달</div></div>
