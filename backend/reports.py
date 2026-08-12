@@ -205,12 +205,59 @@ def _send_email(to_email: str, subject: str, body_text: str, pdf_bytes: bytes, p
     return result.get("status") == "sent"
 
 
+def _merge_pdfs(pdf_bytes_list: list) -> bytes:
+    from pypdf import PdfWriter
+    import io
+
+    writer = PdfWriter()
+    for b in pdf_bytes_list:
+        writer.append(io.BytesIO(b))
+    out = io.BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
+def _build_ai_consult_pdf(order, data: dict) -> bytes:
+    """AI 전화상담(사주+타로 통합) 통화 후 PDF — 기존 report_saju.html/report_tarot.html
+    템플릿을 그대로 재사용해 섹션별로 렌더한 뒤 한 PDF로 합친다. 실제 통화에서 나온
+    사주 1건 + 타로 스프레드 N건(질문축 바뀔 때마다 새로 뽑힌 것) 전부 반영."""
+    pdfs = []
+    saju_path = _template_path("saju4")
+    if data.get("saju") and saju_path:
+        pdfs.append(_render_pdf(saju_path, _build_saju_context(order, data["saju"])))
+    tarot_path = _template_path("tarot_spread")
+    if tarot_path:
+        for draw in data.get("tarot_draws") or []:
+            pdfs.append(_render_pdf(tarot_path, _build_tarot_context(order, draw)))
+    if not pdfs:
+        raise ValueError("ai_consult PDF: 사주/타로 데이터가 비어있음")
+    return pdfs[0] if len(pdfs) == 1 else _merge_pdfs(pdfs)
+
+
+def _build_unified_pdf(order, data: dict) -> bytes:
+    """사주+타로 통합 흐름(SajuFunnelPage 유형선택→카드뽑기→UnifiedPaywall, 2026-08-12 신설) PDF.
+    _build_ai_consult_pdf와 같은 방식 — 새 템플릿을 만들지 않고 기존 report_saju.html/
+    report_tarot.html을 그대로 재사용해 두 PDF를 렌더한 뒤 합친다.
+    reading_data 모양은 프론트(SajuFunnelPage)에서 {saju: sajuResult, tarot: drawResult, topic} 로 실어보낸다."""
+    pdfs = []
+    saju_path = _template_path("saju4")
+    if data.get("saju") and saju_path:
+        pdfs.append(_render_pdf(saju_path, _build_saju_context(order, data["saju"])))
+    tarot_path = _template_path("tarot_spread")
+    if data.get("tarot") and tarot_path:
+        pdfs.append(_render_pdf(tarot_path, _build_tarot_context(order, data["tarot"])))
+    if not pdfs:
+        raise ValueError("unified PDF: 사주/타로 데이터가 비어있음")
+    return pdfs[0] if len(pdfs) == 1 else _merge_pdfs(pdfs)
+
+
 def send_report_email(order) -> bool:
     """주문 승인 시 호출. 템플릿·이메일주소 없거나 이미 보냈으면 False(no-op)."""
     if order.email_sent:
         return False
-    template_path = _template_path(order.product_key)
-    if not template_path:
+    is_ai_consult = order.product_key in ("ai_consult_base", "ai_consult_extend")
+    is_unified = order.product_key == "unified"   # 🔴 2026-08-12 신설(SajuFunnelPage 통합흐름)
+    if not is_ai_consult and not is_unified and not _template_path(order.product_key):
         return False
     to_email = _extract_email(order.contact)
     if not to_email:
@@ -222,9 +269,20 @@ def send_report_email(order) -> bool:
     except json.JSONDecodeError:
         return False
 
-    builder = _build_saju_context if order.product_key == "saju4" else _build_tarot_context
-    context = builder(order, data)
-    pdf_bytes = _render_pdf(template_path, context)
+    if is_ai_consult:
+        # AI 전화상담은 saju4/tarot_spread 둘 다 필요 — 템플릿 하나라도 없으면 아직 no-op
+        if not _template_path("saju4") or not _template_path("tarot_spread"):
+            return False
+        pdf_bytes = _build_ai_consult_pdf(order, data)
+    elif is_unified:
+        if not _template_path("saju4") or not _template_path("tarot_spread"):
+            return False
+        pdf_bytes = _build_unified_pdf(order, data)
+    else:
+        builder = _build_saju_context if order.product_key == "saju4" else _build_tarot_context
+        context = builder(order, data)
+        pdf_bytes = _render_pdf(_template_path(order.product_key), context)
+
     _send_email(
         to_email,
         subject=f"[고삼타로] {order.product_name} 결과가 도착했습니다",
