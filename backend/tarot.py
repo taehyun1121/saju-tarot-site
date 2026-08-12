@@ -1,4 +1,22 @@
 import random
+import re
+
+# 🔴 2026-08-12 — 카드명이 "8/컵"·"바보(0)" 같은 표기라 조사(이/가·예요/이에요)를 그냥 하나로
+# 고정하면 절반은 문법이 틀린다("8/컵'가"는 오류, "8/컵'이"가 맞음). 문자열 끝의 마지막 한글
+# 글자 받침 유무로 판별한다(숫자·괄호는 건너뛰고 그 앞 한글을 본다).
+_LAST_HANGUL_RE = re.compile(r'[가-힣](?!.*[가-힣])')
+
+def _has_batchim(word: str) -> bool:
+    m = _LAST_HANGUL_RE.search(word or "")
+    if not m:
+        return True
+    return (ord(m.group()) - 0xAC00) % 28 != 0
+
+def _josa_ga(word: str) -> str:
+    return "이" if _has_batchim(word) else "가"
+
+def _josa_yeyo(word: str) -> str:
+    return "이에요" if _has_batchim(word) else "예요"
 
 MAJOR = [
     "바보(0)","마법사(1)","여사제(2)","황후(3)","황제(4)",
@@ -487,8 +505,11 @@ def get_saju_meaning(card_name: str, reversed_: bool, ilgan: str) -> str:
         energy_desc, tone = card_e[0], card_e[1]
 
     # 일간 성향과 카드 에너지 결합 문장
+    # 🔴 2026-08-12 버그수정(사주팔자봇 위임, 타로_리딩기법.md) — 역방향 분기가 energy_desc를
+    # 안 써서 카드가 뭐든 "내면의 저항을 드러내요" 한 문장으로 획일 출력됐다. energy_desc를
+    # 넣어 카드마다(수트별·메이저별) 다른 문장이 나가게 한다.
     if reversed_:
-        base = f"{kw} 에너지를 가진 {ilgan} 일간에게 이 카드는 내면의 저항을 드러내요."
+        base = f"{kw} 기질의 {ilgan} 일간에게 이 카드는 {energy_desc} 에너지가 막히거나 안으로 눌려 있는 모습으로 나타나요."
     else:
         base = f"{kw} 기질의 {ilgan} 일간에게 이 카드는 {energy_desc} 에너지로 공명해요."
 
@@ -498,7 +519,97 @@ def get_saju_meaning(card_name: str, reversed_: bool, ilgan: str) -> str:
     return result
 
 
+# 🔴 2026-08-12 신설(사주팔자봇 위임, 타로_리딩기법.md Part 2.5) — 시간 라벨이 뒤섞인 스프레드
+# (켈틱크로스·2인관계타로12·렘니스케이트8)는 포지션이 뽑힌 순서(1..N)가 아니라 실제 시간/서사
+# 흐름(起承轉結)으로 재배열해서 읽어야 한다. 순서대로 짜인 스프레드(3~5장 단순형·magic7·
+# relation7)는 이미 흐름이 맞으므로 재배열 대상에서 뺀다(문서 Part 2.5 규칙 2).
+POSITION_PHASE = {
+    # 켈틱 크로스 — 起(옛과거~가까운과거) 承(현재 자리·방해물·내면·평가·심리) 轉(가까운미래=꺾이는 지점) 結(미래~결과)
+    "오래된 과거": "기", "가까운 과거": "기",
+    "현재 위치": "승", "현재 방해물": "승", "내가 보는 나": "승",
+    "타인들의 평가": "승", "심리 상태": "승",
+    "가까운 미래": "전",
+    "미래": "결", "결과": "결",
+    # 2인 관계 타로(12장) — A라인(나)=起 · B라인(상대)=承 · C라인 앞3(쟁점·영향·갈등)=轉 · C라인 마지막(전망)=結
+    "내가 끌린 이유": "기", "내가 기대하는 것": "기", "내가 얻는 성장": "기", "나의 미래": "기",
+    "그 사람이 끌린 이유": "승", "그 사람이 기대하는 것": "승", "그 사람이 얻는 성장": "승", "그 사람의 미래": "승",
+    "가장 중요한 요소": "전", "서로에게 미치는 영향": "전", "갈등·장애물": "전",
+    "전망과 해결책": "결",
+    # 렘니스케이트(8장) — 내쪽=起 · 상대쪽=承 · 접점(교차)=轉 (결은 접점을 종합해 절차적으로 생성)
+    "내 갈등 요소": "기", "나의 생각": "기", "나의 본심": "기",
+    "그 사람의 갈등 요소": "승", "그 사람의 생각": "승", "그 사람의 본심": "승",
+    "접점 — 상대 쪽": "전", "접점 — 내 쪽": "전",
+}
+PHASE_ORDER = ["기", "승", "전", "결"]
+PHASE_LABEL = {
+    "기": "여기까지 오게 된 배경을 보면",
+    "승": "지금 서 있는 자리를 보면",
+    "전": "그런데 여기서 한 번 꺾이는 지점이 있어요",
+    "결": "결국 어디로 가느냐면",
+}
+
+
+def _phased_narrative(cards: list, question: str) -> str:
+    """포지션을 起承轉結로 재배열해 챕터식으로 읽는다(Part 2.5) — 카드1을 먼저 테제로
+    압축하고(Part1-①/Part2.5-③), 챕터마다 인과연결어로 잇고(Part2-①) 이전 카드를
+    상징으로 재호출하며(Part2-②), 결 단계가 역방향이면 조건부 분기로 답한다(Part2-④)."""
+    buckets = {p: [] for p in PHASE_ORDER}
+    for c in cards:
+        phase = POSITION_PHASE.get(c.get("position_name", ""))
+        if phase:
+            buckets[phase].append(c)
+
+    lead = cards[0]
+    q_prefix = f"'{question}'에 대해 말하면, " if question else ""
+    parts = [f"{q_prefix}'{lead['card_name']}'{_josa_ga(lead['card_name'])} 먼저 나온 걸 보면, 지금 이 흐름의 핵심 긴장은 여기서 시작돼요."]
+
+    connectors = ["그래서", "그러다 보니", "그런 채로"]
+    prev_name = lead["card_name"]
+    for i, phase in enumerate(PHASE_ORDER):
+        group = buckets[phase]
+        if not group:
+            continue
+        names = "·".join(f"'{c['card_name']}'" for c in group)
+        connector = connectors[(i - 1) % len(connectors)] if i > 0 else ""
+        callback = f" (아까 나온 {prev_name}의 기운이 여기까지 이어져요.)" if i > 0 else ""
+        lead_word = f" {connector}" if connector else ""
+        parts.append(f"{lead_word} {PHASE_LABEL[phase]}, {names}{_josa_ga(group[-1]['card_name'])} 나왔어요.{callback}")
+        prev_name = group[-1]["card_name"]
+
+    result_group = buckets["결"]
+    if result_group:
+        rc = result_group[-1]
+        ga = _josa_ga(rc["card_name"])
+        if rc.get("reversed"):
+            parts.append(f" 결국 '{rc['card_name']}'{ga} 역방향으로 나온 만큼, 두 가지로 나눠서 볼게요 — 지금처럼 그대로 두면 흐름이 늦어지고, 반대로 지금 원인을 짚어 움직이면 방향이 풀려요.")
+        else:
+            parts.append(f" 결국 '{rc['card_name']}'{ga} 나온 만큼, 이 질문의 답은 그쪽으로 흘러가고 있어요.")
+    elif buckets["전"]:
+        # 렘니스케이트처럼 '결과' 포지션이 아예 없는 스프레드 — 접점(轉)을 종합해 처방으로 마무리한다.
+        cross = buckets["전"]
+        cross_rev = sum(1 for c in cross if c.get("reversed"))
+        if cross_rev:
+            parts.append(" 접점에서 역방향이 섞인 만큼, 서로 다르게 보고 있는 부분부터 솔직하게 맞춰보는 게 먼저예요.")
+        else:
+            parts.append(" 접점이 정방향으로 모인 만큼, 이미 통하는 지점이 있으니 그걸 붙잡고 대화를 이어가면 돼요.")
+
+    return "".join(parts)
+
+
 def get_overall_summary(cards: list, ilgan: str = None, question: str = "") -> str:
+    # 🔴 2026-08-12(Part 2.5) — 시간 라벨이 뒤섞인 스프레드는 起承轉結 챕터로 재배열해서 읽는다.
+    # 카드 절반 이상이 이 재배열 대상 포지션이면(=celtic·relation12·lemniscate) 챕터식으로 가고,
+    # 아니면(3~7장 단순형·magic7·relation7) 기존 나열형 아래 로직을 그대로 쓴다(문서 규칙 2).
+    phase_hits = sum(1 for c in cards if POSITION_PHASE.get(c.get("position_name", "")))
+    if cards and phase_hits >= max(3, len(cards) * 0.6):
+        narrative = _phased_narrative(cards, question)
+        if ilgan:
+            trait = ILGAN_CARD_TRAITS.get(ilgan, {})
+            kw = trait.get("keyword", "")
+            if kw:
+                narrative += f" {ilgan} 일간({kw})의 기질로 보면, 자신의 강점을 믿고 판단하는 게 가장 중요해요."
+        return narrative
+
     total = len(cards)
     reversed_count = sum(1 for c in cards if c.get("reversed"))
     upright_count = total - reversed_count
@@ -590,7 +701,24 @@ def get_overall_summary(cards: list, ilgan: str = None, question: str = "") -> s
         if a in drawn_names and b in drawn_names:
             combo_msgs.append(f" {note}")
 
-    combo_msg = "".join(combo_msgs)
+    # 🔴 2026-08-12 버그수정(사주팔자봇 위임, Part2-①②④) — 기존엔 combo_msgs를 그냥 이어붙여서
+    # "나열"에 머물렀다. 인과연결어로 사슬을 만들고(①), 첫 카드를 상징으로 재호출하고(②),
+    # 흐름이 애매하면 갈래를 나눠 명시한다(④).
+    combo_msg = ""
+    if combo_msgs:
+        connectors = ["그래서", "게다가", "특히"]
+        combo_msg = combo_msgs[0]
+        for i, m in enumerate(combo_msgs[1:]):
+            combo_msg += f" {connectors[i % len(connectors)]}{m}"
+
+    callback_msg = ""
+    if total >= 3:
+        first_card = cards[0].get("card_name", "")
+        callback_msg = f" 맨 처음 나온 '{first_card}'의 기운이 지금까지도 바탕에 깔려 있어요."
+
+    branch_msg = ""
+    if overall_tone == "혼재된":
+        branch_msg = " 이 흐름은 크게 두 갈래로 볼 수 있어요 — 지금처럼 그대로 두면 애매함이 길어지고, 반대로 지금 방향을 하나 정하면 흐름이 빠르게 정리돼요."
 
     return (
         f"{q_msg}{overall_tone} 에너지로 나타나고 있어요. "
@@ -598,6 +726,8 @@ def get_overall_summary(cards: list, ilgan: str = None, question: str = "") -> s
         f"{suit_msg.get(dominant, '')}"
         f"{tension_msg}"
         f"{combo_msg}"
+        f"{callback_msg}"
+        f"{branch_msg}"
         f"{saju_msg}"
     )
 
@@ -609,11 +739,17 @@ def get_meaning(card_name: str, reversed_: bool, position_name: str = "") -> str
     else:
         sentence = "변화의 흐름이 이 자리에 작용하고 있어요."
 
+    # 🔴 2026-08-12 버그수정(사주팔자봇 위임, 타로_리딩기법.md Part1-①) — POSITION_PREFIXES는
+    # "지금 이 자리를 보면" 같은 전환 문구만 붙이고 카드뜻 자체는 재프레이밍을 안 했다.
+    # 카드뜻을 그대로 나열하기 전에 "이 카드가 지금 뜻하는 바"를 키워드로 먼저 압축해 던진다.
+    keyword = get_keyword(card_name, reversed_)
+    compressed = f"핵심만 한마디로 하면 '{keyword}'{_josa_yeyo(keyword)}."
+
     if position_name:
         prefix = POSITION_PREFIXES.get(position_name, "")
         if prefix:
-            return f"{prefix}, {sentence}"
-    return sentence
+            return f"{prefix}, {compressed} {sentence}"
+    return f"{compressed} {sentence}"
 
 # ── 기존 키워드 (이미지 카드 하단 표시용) ─────────────────
 KEYWORDS = {
@@ -867,5 +1003,93 @@ SPREADS = {
             {"pos":10,"col":3,"row":0},
         ],
         "gridCols": 4, "gridRows": 4,
+    },
+
+    # ══════════════════════════════════════════════════════════════════════
+    # 🔴 2026-08-11 이식 — 롱폼에서 쓰던 관계 전용 스프레드를 사이트로 가져온다 (형 ㄱㄱ)
+    #
+    # 형: "근데 스프레드가 너무 작다" / "연애운 보는데 고작 3장 펼쳐서 사람 마음을 움직일 수 있을까?"
+    #     "이전에 내가 롱폼만들 때 연애운 관련으로 한 10장 펼친거 같은데?" → "12장 이식하는 거 맞아"
+    #
+    # 출처: shared/skills/tarot-spread-layout.md 137행~ (2026-07-10 형 ㄱㄱ로 고정)
+    #   원문: "앱 5장 스프레드와 별개. 얕은 3장×3회차로 축소 금지 — 관계 전용 스프레드로 깊게 간다.
+    #   (계기: 재물운 1편이 3장×3회차라 재회 2편도 얕게 베꼈다가 주인 지적.)"
+    #   → 같은 지적이 07-10·08-11 두 번 반복돼 노션 지침으로 박혔다
+    #     ("형 상담 타로는 1·3·5장 금지 — 형이 지정할 때만", 사주팔자 등록)
+    #
+    # 🔴 사용 조건 (사주봇 확정): A(질문자)/B(상대) 라인이 구조상 필수라
+    #   **특정 대상이 있는 질문에만** 쓴다(재회할 그 사람·짝사랑 상대·현재 연인).
+    #   "그냥 제 연애운이 어떤가요"처럼 대상이 없으면 A/B 라인이 허공에 뜬다 → celtic(10)으로 분기.
+    #   프론트에서 "특정 대상이 있나요?"로 자동 분기한다.
+    #
+    # 🔴 사주 연동 포인트: C라인(관계 종합)이 사주+타로 **수렴 지점**이다.
+    #   A라인=질문자 = 사주가 말하는 "타고난 구조"와 축이 겹친다.
+    #   엔진 스펙 B4 "종합에서 1회 엮는다"의 그 1회가 여기서 일어난다.
+    # ══════════════════════════════════════════════════════════════════════
+    "relation12": {
+        "name": "2인 관계 타로",
+        "cards": 12,
+        "description": "재회·궁합 등 특정 상대와의 관계를 나·상대·관계 세 축으로 깊게 보는 배열",
+        "requires_target": True,   # 🔴 특정 상대가 없으면 쓰면 안 된다(자동 분기용 플래그)
+        "positions": [
+            # A라인 — 질문자
+            {"num":1,"name":"내가 끌린 이유","desc":"내가 그 사람에게 끌리게 된 이유"},
+            {"num":2,"name":"내가 기대하는 것","desc":"내가 그 사람에게 기대하는 것"},
+            {"num":3,"name":"내가 얻는 성장","desc":"내가 그 사람을 통해 얻는 성장"},
+            {"num":4,"name":"나의 미래","desc":"이 관계 속 나의 미래"},
+            # B라인 — 상대
+            {"num":5,"name":"그 사람이 끌린 이유","desc":"그 사람이 나에게 끌리게 된 이유"},
+            {"num":6,"name":"그 사람이 기대하는 것","desc":"그 사람이 나에게 기대하는 것"},
+            {"num":7,"name":"그 사람이 얻는 성장","desc":"그 사람이 나를 통해 얻는 성장"},
+            {"num":8,"name":"그 사람의 미래","desc":"이 관계 속 그 사람의 미래"},
+            # C라인 — 관계 종합 (🔴 사주+타로 수렴 지점)
+            {"num":9,"name":"가장 중요한 요소","desc":"이 관계에서 가장 중요한 것"},
+            {"num":10,"name":"서로에게 미치는 영향","desc":"두 사람이 서로에게 미치는 가장 큰 영향"},
+            {"num":11,"name":"갈등·장애물","desc":"관계를 가로막는 갈등과 장애물"},
+            {"num":12,"name":"전망과 해결책","desc":"미래 전망과 해결책"},
+        ],
+        # 배치(원문): 중앙 마름모 기준 A라인(좌)·B라인(우) 대칭 + 아래 C라인 종합
+        #         [A-1]        [B-1]
+        # [A-2][A-3][A-4] ◆ [B-2][B-3][B-4]
+        #         [C-1][C-2][C-3]
+        #               [C-4]
+        "layout": [
+            {"pos":1,"col":1,"row":0},  {"pos":5,"col":5,"row":0},
+            {"pos":2,"col":0,"row":1},  {"pos":3,"col":1,"row":1},  {"pos":4,"col":2,"row":1},
+            {"pos":6,"col":4,"row":1},  {"pos":7,"col":5,"row":1},  {"pos":8,"col":6,"row":1},
+            {"pos":9,"col":2,"row":2},  {"pos":10,"col":3,"row":2}, {"pos":11,"col":4,"row":2},
+            {"pos":12,"col":3,"row":3},
+        ],
+        "gridCols": 7, "gridRows": 4,
+    },
+
+    # 렘니스케이트 (8장, 무한대 ∞) — 출처 더메인타로. 롱폼 2회차용.
+    # 사주봇 판단: 12장보다 가벼운 관계 배열이 필요할 때 대안으로 둔다.
+    # A원(좌)·B원(우)이 ∞로 겹치고 가운데 3·7이 두 원의 교집합이다.
+    #    [2]          [6]
+    # [1]   [7][3]   [5]
+    #    [4]          [8]
+    "lemniscate": {
+        "name": "렘니스케이트",
+        "cards": 8,
+        "description": "두 사람의 갈등·본심·접점을 무한대 구조로 겹쳐 보는 관계 배열",
+        "requires_target": True,
+        "positions": [
+            {"num":1,"name":"내 갈등 요소","desc":"내 쪽 갈등 요소"},
+            {"num":2,"name":"나의 생각","desc":"내가 하는 생각"},
+            {"num":3,"name":"접점 — 상대 쪽","desc":"두 사람의 공통점, 상대 쪽에서 본 것"},
+            {"num":4,"name":"나의 본심","desc":"내 진짜 마음"},
+            {"num":5,"name":"그 사람의 갈등 요소","desc":"상대 쪽 갈등 요소"},
+            {"num":6,"name":"그 사람의 생각","desc":"상대가 하는 생각"},
+            {"num":7,"name":"접점 — 내 쪽","desc":"두 사람의 공통점, 내 쪽에서 본 것"},
+            {"num":8,"name":"그 사람의 본심","desc":"상대의 진짜 마음"},
+        ],
+        "layout": [
+            {"pos":2,"col":1,"row":0},  {"pos":6,"col":4,"row":0},
+            {"pos":1,"col":0,"row":1},  {"pos":7,"col":2,"row":1}, {"pos":3,"col":3,"row":1},
+            {"pos":5,"col":5,"row":1},
+            {"pos":4,"col":1,"row":2},  {"pos":8,"col":4,"row":2},
+        ],
+        "gridCols": 6, "gridRows": 3,
     },
 }
