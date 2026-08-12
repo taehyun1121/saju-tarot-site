@@ -446,7 +446,13 @@ export default function SajuFunnelPage({ onSelectTarot }) {
             <span className="ey">여기까지가 무료 스포입니다</span>
             <div className="htitle" style={{ fontSize: 36, marginBottom: 26 }}>정확한 <span className="g">연도</span>와 전체 풀이는 신당 <span className="r">안에서</span></div>
             <div className="hdesc" style={{ marginBottom: 18 }}>언제·얼마나·어떻게. 흐릿한 건 제가 다 걷어 드립니다.</div>
-            <div className="locked"><div className="blur">2026년 O월, 재물문이 크게 열리고 / 연애는 O월부터 신호가… / 결혼 적기는 20XX…</div><div className="ov">🔒</div></div>
+            {/* 🔴 2026-08-12 A안 이식 — 모바일(614행 근처)과 같은 방식. 연애·결혼은 엔진이
+                월·계절 정밀도를 안 줘서 가짜 날짜를 못 만든다 — 디자인봇 판단 대기 중. */}
+            <div className="locked"><div className="blur">
+              {sajuResult?.fortune?.peaks?.['대박운']?.year ? `${sajuResult.fortune.peaks['대박운'].year}년,` : '올해,'} 재물문이 크게 열리고, <Rd>▓▓</Rd>를 통해 들어옵니다.
+              {sajuResult?.fortune?.peaks?.['조심시기']?.year && ` ${sajuResult.fortune.peaks['조심시기'].year}년엔 `}<Rd>▓▓ 관계</Rd>로 한 번 흔들리십니다.
+              연애·결혼 흐름도 함께 열립니다.
+            </div><div className="ov">🔒</div></div>
             <PromoBanner />
             <div className="pricebox"><div className="p">₩ 9,900</div><div className="pn">4대 운(대박·조심·연애·결혼) 정확 연도 + 전체 풀이 · 완성 PDF 배달</div></div>
             <button className="cta serif" style={{ width: 520 }} onClick={() => setOrderOpen(true)}>전체 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
@@ -611,7 +617,15 @@ export default function SajuFunnelPage({ onSelectTarot }) {
               <span className="ey">여기까지가 무료 스포입니다</span>
               <div className="htitle">정확한 <span className="g">연도</span>와 전체 풀이는<br />신당 <span className="r">안에서</span></div>
               <div className="hdesc">언제·얼마나·어떻게. 흐릿한 건 제가 다 걷어 드립니다.</div>
-              <div className="locked"><div className="blurcard">2026년 O월, 재물문이 크게 열리고 / 연애는 O월부터 신호가… / 결혼 적기는 20XX…</div><div className="lockover">🔒</div></div>
+              {/* 🔴 2026-08-12 A안 이식 — TarotFunnelPage와 같은 방식(실데이터+Rd 마스킹).
+                  연애·결혼은 엔진이 월·계절 정밀도를 안 줘서(년도만 줌) 가짜 날짜를 못 만든다.
+                  대박운·조심시기는 실제 연도를 노출(spoSpecs와 동일 원칙), 연애·결혼은 날짜를
+                  지어내지 않고 "함께 열린다"고만 정직하게 서술 — 디자인봇 판단 대기 중. */}
+              <div className="locked"><div className="blurcard">
+                {sajuResult?.fortune?.peaks?.['대박운']?.year ? `${sajuResult.fortune.peaks['대박운'].year}년,` : '올해,'} 재물문이 크게 열리고, <Rd>▓▓</Rd>를 통해 들어옵니다.
+                {sajuResult?.fortune?.peaks?.['조심시기']?.year && ` ${sajuResult.fortune.peaks['조심시기'].year}년엔 `}<Rd>▓▓ 관계</Rd>로 한 번 흔들리십니다.
+                연애·결혼 흐름도 함께 열립니다.
+              </div><div className="lockover">🔒</div></div>
               <PromoBanner />
               <div className="pricebox"><div className="p">₩ 9,900</div><div className="pn">4대 운(대박·조심·연애·결혼) 정확 연도 + 전체 풀이</div><div className="mailrow">✉️ 완성 PDF, 이메일·카톡으로 배달</div></div>
               <button className="cta" onClick={() => setOrderOpen(true)}>전체 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
