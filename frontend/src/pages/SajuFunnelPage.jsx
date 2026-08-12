@@ -4,8 +4,7 @@ import '../funnel.css'
 import TheaterFrame from '../components/TheaterFrame'
 import PcIntroScreen from '../components/PcIntroScreen'
 import MobileIntroScreen from '../components/MobileIntroScreen'
-import OrderModal from '../components/OrderModal'
-import PromoBanner from '../components/PromoBanner'
+import UnifiedPaywall from '../components/UnifiedPaywall'
 import useIsDesktop from '../hooks/useIsDesktop'
 import imgEmTarot from '../assets/funnel/em_tarot_blue.jpg'
 import imgEmSaju from '../assets/funnel/em_saju_blue.jpg'
@@ -33,6 +32,15 @@ const PC_TILES = [
   { id: 'tarot', h3: '타로의 문', desc: '지금 이 순간, 당장 궁금한 그 일의 흐름', img: imgTileTarot },
   { id: 'saju', h3: '사주의 문', desc: '타고난 판 — 재물·연애·시기의 큰 그림', img: imgTileSaju },
   { id: 'chong', h3: '올해 총운의 문', desc: '올 한 해, 열리고 닫히는 문', img: imgTileChong },
+]
+
+// 통합 흐름 [3단계] 유형 선택(다리) 카드 — 08-11 디자인봇 확정(gosam_unified_funnel/설계.md 결정3).
+// question은 /api/tarot/draw에 그대로 실려가 overall_summary 톤에 반영된다.
+const TOPIC_CARDS = [
+  { id: 'love',   ic: '💗', label: '연애·관계', desc: '그 사람, 다시 이어질까', question: '연애·관계가 앞으로 어떻게 흘러갈지' },
+  { id: 'career', ic: '🧭', label: '진로',     desc: '지금 이 길이 맞나',     question: '지금 가는 길이 맞는지' },
+  { id: 'money',  ic: '💰', label: '금전',     desc: '돈 흐름이 언제 트이나', question: '돈 흐름이 언제 트이는지' },
+  { id: 'total',  ic: '🌗', label: '종합',     desc: '올해 전체를 훑어줘',   question: '올해 전체 흐름' },
 ]
 
 // PC 와이드 화면 공용 셸(배경+틴트+단청+상단바+wrap) — 출처: funnel_pc_screens.html
@@ -210,12 +218,19 @@ const Top = ({ onBack }) => (
 )
 
 export default function SajuFunnelPage({ onSelectTarot }) {
-  const [screen, setScreen] = useState(0)   // 0=랜딩 1=선택 2=입력 3~6=스포 7=오행티저 8=인생그래프티저 9=페이월
+  // 0=랜딩 1=선택 2=입력 3~6=스포 7=오행티저 8=인생그래프티저 9=유형선택(다리) 10=통합 결론 페이월
+  // 🔴 2026-08-12 형 확정(08-11 합의 실행): 사주 따로/타로 따로가 아니라 하나의 흐름 — 9~10이
+  //   기존 "사주 단독 ₩9,900 페이월"을 대체한다. 상세: gosam_unified_funnel/설계.md
+  const [screen, setScreen] = useState(0)
   const [form, setForm] = useState({ year: '', month: '', day: '', hour: '', gender: '여', name: '' })
   const [sajuResult, setSajuResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [orderOpen, setOrderOpen] = useState(false)
+  const [topic, setTopic] = useState(null)
+  const [drawResult, setDrawResult] = useState(null)
+  const [drawLoading, setDrawLoading] = useState(false)
+  const [drawError, setDrawError] = useState('')
   // 🔴 코코 추가(2026-07-21, 형 지시): 년(4자리)→월(2자리)→일(2자리) 채우면 자동으로 다음 칸 포커스.
   // isDesktop에 따라 PC/모바일 중 하나만 마운트되므로 ref 공유해도 충돌 없음.
   const monthInputRef = useRef(null)
@@ -227,7 +242,7 @@ export default function SajuFunnelPage({ onSelectTarot }) {
     if (v.length >= maxLen && nextRef?.current) nextRef.current.focus()
   }
 
-  const go = (n) => setScreen(Math.max(0, Math.min(9, n)))
+  const go = (n) => setScreen(Math.max(0, Math.min(10, n)))
   const specs = sajuResult ? spoSpecs(sajuResult) : spoSpecs(null)
   const isDesktop = useIsDesktop()
   const ohaeng = sajuResult?.ohaeng || []
@@ -319,6 +334,29 @@ export default function SajuFunnelPage({ onSelectTarot }) {
     } catch (e) {
       setError('사주 계산에 실패했습니다. 잠시 후 다시 시도해 주세요.')
     } finally { setLoading(false) }
+  }
+
+  // 유형선택 → 카드뽑기. saju_context(ilgan)를 실어보내 백엔드가 get_saju_meaning/get_overall_summary로
+  // 사주(일간)를 반영한 카드 해석·통합 요약을 계산하게 한다(새 로직 추가 아님, 기존 엔진 재사용).
+  const pickTopic = async (t) => {
+    setTopic(t.id)
+    setDrawLoading(true); setDrawError('')
+    try {
+      const res = await fetch(`${API}/tarot/draw`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          spread_id: 'success',
+          question: t.question,
+          saju_context: sajuResult?.ilgan ? { ilgan: sajuResult.ilgan } : null,
+        }),
+      })
+      if (!res.ok) throw new Error('서버 응답 오류')
+      const data = await res.json()
+      setDrawResult(data)
+      go(10)
+    } catch (e) {
+      setDrawError('카드를 뽑는 데 실패했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally { setDrawLoading(false) }
   }
 
   if (screen === 0 && isDesktop) {
@@ -453,24 +491,42 @@ export default function SajuFunnelPage({ onSelectTarot }) {
       return (
         <div className="funnel-root">
           <PcWide onBack={() => go(8)}>
-            <span className="ey">여기까지가 무료 스포입니다</span>
-            <div className="htitle" style={{ fontSize: 36, marginBottom: 26 }}>정확한 <span className="g">연도</span>와 전체 풀이는 신당 <span className="r">안에서</span></div>
-            <div className="hdesc" style={{ marginBottom: 18 }}>언제·얼마나·어떻게. 흐릿한 건 제가 다 걷어 드립니다.</div>
-            {/* 🔴 2026-08-12 수정 — spoSpecs()와 동일 전제로 통일. peaks['연애운']/['결혼운']도
-                대박운/조심시기와 같은 구조로 실연도를 준다(엔진 데이터 없다는 예전 판단 오류였음,
-                [[feedback_verify_code_claims]]). 조건 미충족 시엔 "미확정"이라 년도가 없을 수 있어
-                그 경우만 "발동하는 해" 식 정직 표현으로 대체. */}
-            <div className="locked"><div className="blur">
-              {sajuResult?.fortune?.peaks?.['대박운']?.year ? `${sajuResult.fortune.peaks['대박운'].year}년,` : '올해,'} 재물문이 크게 열리고, <Rd>▓▓</Rd>를 통해 들어옵니다.
-              {sajuResult?.fortune?.peaks?.['조심시기']?.year && ` ${sajuResult.fortune.peaks['조심시기'].year}년엔 `}<Rd>▓▓ 관계</Rd>로 한 번 흔들리십니다.
-              {' '}{sajuResult?.fortune?.peaks?.['연애운']?.year ? `${sajuResult.fortune.peaks['연애운'].year}년엔` : '도화가 발동하는 해엔'} <Rd>▓▓</Rd> 인연이 풀리고, {sajuResult?.fortune?.peaks?.['결혼운']?.year ? `${sajuResult.fortune.peaks['결혼운'].year}년엔` : '일지합이 이루어지는 해엔'} <Rd>▓▓</Rd> 혼사의 문이 열립니다.
-            </div><div className="ov">🔒</div></div>
-            <PromoBanner />
-            <div className="pricebox"><div className="p">₩ 9,900</div><div className="pn">4대 운(대박·조심·연애·결혼) 정확 연도 + 전체 풀이 · 완성 PDF 배달</div></div>
-            <button className="cta serif" style={{ width: 520 }} onClick={() => setOrderOpen(true)}>전체 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
-            <button className="pcback" onClick={() => go(0)}>처음으로 돌아가기</button>
+            <span className="ey">사주 진단 ✓ 완료 · 다음</span>
+            <div className="htitle">네 <span className="cS">흐름</span>은 다 봤어. 이제 뭐가 제일 궁금해?</div>
+            <div className="hdesc">고른 주제로 이 사주 흐름에 맞는 카드를 뽑아줄게. 사주가 큰 그림이면, 카드는 지금 이 순간이야.</div>
+            <div className="qgrid">
+              {TOPIC_CARDS.map(t => (
+                <button key={t.id} className={`qcard${topic === t.id ? ' on' : ''}`} disabled={drawLoading} onClick={() => pickTopic(t)}>
+                  <div className="ic">{t.ic}</div><b>{t.label}</b><p>{t.desc}</p>
+                  <span className="go">{drawLoading && topic === t.id ? '뽑는 중…' : '이 질문으로 뽑기 ›'}</span>
+                </button>
+              ))}
+            </div>
+            {drawError && <div style={{ color: '#e08080', fontSize: 13, marginTop: 12 }}>{drawError}</div>}
           </PcWide>
-          <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="saju4" amount={9900} productName="사주 4대운 전체 풀이" defaultName={form.name} readingData={sajuResult} />
+        </div>
+      )
+    }
+    if (screen === 10) {
+      return (
+        <div className="funnel-root">
+          <PcWide onBack={() => go(9)}>
+            <UnifiedPaywall
+              saju={{ text: sajuResult?.ai_overall || '' }}
+              tarot={{ cardName: drawResult?.cards?.[0]?.card_name, text: drawResult?.cards?.[0]?.meaning || '' }}
+              merge={{ text: drawResult?.overall_summary || '' }}
+              locked={[
+                { title: '두 축이 같이 가리키는 것', open: true },
+                { title: '정확한 시기', open: false },
+                { title: '구체적으로 해야 할 행동', open: false },
+                { title: '이 흐름을 바꾸는 처방', open: false },
+              ]}
+              amount={9900} productKey="unified" productName="사주 x 카드 합친 결론"
+              readingData={{ saju: sajuResult, tarot: drawResult, topic }}
+              defaultName={form.name} orderOpen={orderOpen} setOrderOpen={setOrderOpen}
+              onBack={() => go(0)}
+            />
+          </PcWide>
         </div>
       )
     }
@@ -478,7 +534,7 @@ export default function SajuFunnelPage({ onSelectTarot }) {
 
   return (
     <div className="funnel-root">
-      <TheaterFrame screen={screen} total={10} onPrev={() => go(screen - 1)} onNext={() => go(screen + 1)}>
+      <TheaterFrame screen={screen} total={11} onPrev={() => go(screen - 1)} onNext={() => go(screen + 1)}>
       <div className="ph">
         {screen === 1 && (
           <>
@@ -626,24 +682,43 @@ export default function SajuFunnelPage({ onSelectTarot }) {
             <Top onBack={() => go(8)} />
             <div className="frameborder" /><div className="seal" style={{ right: 26, top: 92 }}>❖</div>
             <div className="content">
-              <span className="ey">여기까지가 무료 스포입니다</span>
-              <div className="htitle">정확한 <span className="g">연도</span>와 전체 풀이는<br />신당 <span className="r">안에서</span></div>
-              <div className="hdesc">언제·얼마나·어떻게. 흐릿한 건 제가 다 걷어 드립니다.</div>
-              {/* 🔴 2026-08-12 수정 — spoSpecs()와 동일 전제로 통일. peaks['연애운']/['결혼운']도
-                  대박운/조심시기와 같은 구조로 실연도를 준다(엔진 데이터 없다는 예전 판단 오류였음,
-                  [[feedback_verify_code_claims]]). 조건 미충족 시엔 "미확정"이라 년도가 없을 수 있어
-                  그 경우만 "발동하는 해" 식 정직 표현으로 대체. */}
-              <div className="locked"><div className="blurcard">
-                {sajuResult?.fortune?.peaks?.['대박운']?.year ? `${sajuResult.fortune.peaks['대박운'].year}년,` : '올해,'} 재물문이 크게 열리고, <Rd>▓▓</Rd>를 통해 들어옵니다.
-                {sajuResult?.fortune?.peaks?.['조심시기']?.year && ` ${sajuResult.fortune.peaks['조심시기'].year}년엔 `}<Rd>▓▓ 관계</Rd>로 한 번 흔들리십니다.
-                {' '}{sajuResult?.fortune?.peaks?.['연애운']?.year ? `${sajuResult.fortune.peaks['연애운'].year}년엔` : '도화가 발동하는 해엔'} <Rd>▓▓</Rd> 인연이 풀리고, {sajuResult?.fortune?.peaks?.['결혼운']?.year ? `${sajuResult.fortune.peaks['결혼운'].year}년엔` : '일지합이 이루어지는 해엔'} <Rd>▓▓</Rd> 혼사의 문이 열립니다.
-              </div><div className="lockover">🔒</div></div>
-              <PromoBanner />
-              <div className="pricebox"><div className="p">₩ 9,900</div><div className="pn">4대 운(대박·조심·연애·결혼) 정확 연도 + 전체 풀이</div><div className="mailrow">✉️ 완성 PDF, 이메일·카톡으로 배달</div></div>
-              <button className="cta" onClick={() => setOrderOpen(true)}>전체 풀이 받기<small>무통장 안전결제 · 24시간 내 배달</small></button>
-              <button className="subline" style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => go(0)}>처음으로 돌아가기</button>
+              <div className="step">사주 진단 ✓ 완료 · 다음</div>
+              <div className="htitle">네 <span className="cS">흐름</span>은 다 봤어.<br />이제 뭐가 제일 궁금해?</div>
+              <div className="hdesc">고른 주제로 <b>이 사주 흐름에 맞는 카드</b>를 뽑아줄게. 사주가 큰 그림이면, 카드는 지금 이 순간이야.</div>
+              {TOPIC_CARDS.map(t => (
+                <button key={t.id} className={`qcard${topic === t.id ? ' on' : ''}`} disabled={drawLoading} onClick={() => pickTopic(t)}>
+                  <span className="ic">{t.ic}</span>
+                  <div className="tx"><span className="lab">{t.label}</span><span className="sub">{t.desc}</span></div>
+                  <span className="go">{drawLoading && topic === t.id ? '…' : '›'}</span>
+                </button>
+              ))}
+              {drawError && <div style={{ color: '#e08080', fontSize: 13, marginTop: 8 }}>{drawError}</div>}
             </div>
-            <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)} productKey="saju4" amount={9900} productName="사주 4대운 전체 풀이" defaultName={form.name} readingData={sajuResult} />
+          </>
+        )}
+
+        {screen === 10 && (
+          <>
+            <div className="stage" /><div className="texture" /><div className="ambient" />
+            <Top onBack={() => go(9)} />
+            <div className="frameborder" /><div className="seal" style={{ right: 26, top: 92 }}>❖</div>
+            <div className="content">
+              <UnifiedPaywall
+                saju={{ text: sajuResult?.ai_overall || '' }}
+                tarot={{ cardName: drawResult?.cards?.[0]?.card_name, text: drawResult?.cards?.[0]?.meaning || '' }}
+                merge={{ text: drawResult?.overall_summary || '' }}
+                locked={[
+                  { title: '두 축이 같이 가리키는 것', open: true },
+                  { title: '정확한 시기', open: false },
+                  { title: '구체적으로 해야 할 행동', open: false },
+                  { title: '이 흐름을 바꾸는 처방', open: false },
+                ]}
+                amount={9900} productKey="unified" productName="사주 x 카드 합친 결론"
+                readingData={{ saju: sajuResult, tarot: drawResult, topic }}
+                defaultName={form.name} orderOpen={orderOpen} setOrderOpen={setOrderOpen}
+                onBack={() => go(0)}
+              />
+            </div>
           </>
         )}
       </div>
