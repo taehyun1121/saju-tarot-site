@@ -10,7 +10,5 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     envVars:
-      - key: GEMINI_API_KEY
-        sync: false   # 시크릿 — Render 대시보드/환경에서 주입 (레포에 커밋 안 함)
       - key: CORS_ORIGINS
-        value: "https://gosamtarot.com,https://www.gosamtarot.com,https://taehyun1121.github.io,http://localhost:5173"
+        value: "https://gosamtarot.com,https://www.gosamtarot.com,https://taehyun1121.github.io,https://talddung.com,http://localhost:5173"
