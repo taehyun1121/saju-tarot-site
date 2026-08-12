@@ -5,9 +5,20 @@ import re
 # 고정하면 절반은 문법이 틀린다("8/컵'가"는 오류, "8/컵'이"가 맞음). 문자열 끝의 마지막 한글
 # 글자 받침 유무로 판별한다(숫자·괄호는 건너뛰고 그 앞 한글을 본다).
 _LAST_HANGUL_RE = re.compile(r'[가-힣](?!.*[가-힣])')
+_TRAILING_DIGITS_RE = re.compile(r'(\d+)$')
+# 🔴 2026-08-12 버그수정(사주팔자봇 재감수 지적) — "완드2"·"소드10" 같은 표기는 뒤에 붙은
+# 숫자가 한자어(이/삼/사/오/육/칠/팔/구/십)로 읽히는데, 예전엔 숫자 앞 수트명 받침만 봐서
+# "컵2"→'이'(틀림, 2=이라 받침없음이라 '가'가 맞음)처럼 거꾸로 나왔다. 숫자가 끝에 있으면
+# 그 숫자의 한자어 받침으로, 없으면 기존대로 마지막 한글로 판별한다.
+_SINO_NUM_BATCHIM = {"1": True, "2": False, "3": True, "4": False, "5": False,
+                      "6": True, "7": True, "8": True, "9": False, "10": True}
 
 def _has_batchim(word: str) -> bool:
-    m = _LAST_HANGUL_RE.search(word or "")
+    word = word or ""
+    dm = _TRAILING_DIGITS_RE.search(word)
+    if dm and dm.group(1) in _SINO_NUM_BATCHIM:
+        return _SINO_NUM_BATCHIM[dm.group(1)]
+    m = _LAST_HANGUL_RE.search(word)
     if not m:
         return True
     return (ord(m.group()) - 0xAC00) % 28 != 0
