@@ -18,6 +18,22 @@ def _josa_ga(word: str) -> str:
 def _josa_yeyo(word: str) -> str:
     return "이에요" if _has_batchim(word) else "예요"
 
+def _josa_wa(word: str) -> str:
+    return "과" if _has_batchim(word) else "와"
+
+def display_name(name: str) -> str:
+    """리딩 문장용 카드 표기 — 내부 키 '8/완드'·'나이트/완드'는 DB 키라 문장에 그대로 박으면
+    어색하다(사주팔자봇 감수 지적, 2026-08-12). card_image_url()의 파일명 규칙(수트 먼저)과
+    맞춰 '완드8'·'완드 나이트'로 바꾼다. 메이저는 그대로(형식 문제 없음)."""
+    if "/" not in name:
+        return name
+    pip, suit = name.split("/")
+    if pip in ("페이지", "나이트", "퀸", "킹"):
+        return f"{suit} {pip}"
+    if pip == "에이스":
+        return f"{suit} 에이스"
+    return f"{suit}{pip}"
+
 MAJOR = [
     "바보(0)","마법사(1)","여사제(2)","황후(3)","황제(4)",
     "교황(5)","연인(6)","전차(7)","힘(8)","은둔자(9)",
@@ -549,10 +565,28 @@ PHASE_LABEL = {
 }
 
 
+def _symbol_word(card: dict) -> str:
+    """카드를 재호출할 때 이름이 아니라 그 카드의 상징(에너지 키워드)으로 부른다(Part2-②,
+    "이름이 아니라 이미지로 다시 부른다"). 수트카드는 수트 에너지, 메이저는 카드 고유 에너지."""
+    name = card.get("card_name", "")
+    for s in ["완드", "컵", "소드", "펜타클"]:
+        if s in name:
+            return SUIT_ENERGY.get(s, ("흐름", 1))[0]
+    return CARD_ENERGY.get(name, ("흐름", 1))[0]
+
+
+_CALLBACK_TEMPLATES = [
+    " 아까 나온 '{sym}' 기운이 여기서도 계속 걸려요.",
+    " '{sym}' 기운이 아직 안 끝나고 이 자리까지 넘어와 있어요.",
+    " 앞서 짚은 '{sym}'이 여기서도 다시 반복돼요.",
+]
+
+
 def _phased_narrative(cards: list, question: str) -> str:
-    """포지션을 起承轉結로 재배열해 챕터식으로 읽는다(Part 2.5) — 카드1을 먼저 테제로
-    압축하고(Part1-①/Part2.5-③), 챕터마다 인과연결어로 잇고(Part2-①) 이전 카드를
-    상징으로 재호출하며(Part2-②), 결 단계가 역방향이면 조건부 분기로 답한다(Part2-④)."""
+    """포지션을 起承轉結로 재배열해 챕터식으로 읽는다(Part 2.5) — 카드1+카드2 키워드가
+    부딪히는 지점을 테제로 압축하고(Part1-①/Part2.5-③), 챕터마다 인과연결어로 잇고(Part2-①,
+    단 라벨 자체에 전환어가 있는 轉·結 챕터는 커넥터를 또 붙이지 않는다), 이전 카드를 이름이
+    아니라 상징으로 재호출하며(Part2-②), 마지막은 결 카드의 실제 뜻을 처방에 녹인다(Part1-⑥)."""
     buckets = {p: [] for p in PHASE_ORDER}
     for c in cards:
         phase = POSITION_PHASE.get(c.get("position_name", ""))
@@ -560,30 +594,56 @@ def _phased_narrative(cards: list, question: str) -> str:
             buckets[phase].append(c)
 
     lead = cards[0]
+    lead_disp = display_name(lead["card_name"])
+    lead_kw = get_keyword(lead["card_name"], lead.get("reversed", False))
+    second = cards[1] if len(cards) > 1 else None
     q_prefix = f"'{question}'에 대해 말하면, " if question else ""
-    parts = [f"{q_prefix}'{lead['card_name']}'{_josa_ga(lead['card_name'])} 먼저 나온 걸 보면, 지금 이 흐름의 핵심 긴장은 여기서 시작돼요."]
+    if second:
+        second_disp = display_name(second["card_name"])
+        second_kw = get_keyword(second["card_name"], second.get("reversed", False))
+        thesis = f"{q_prefix}{lead_disp}{_josa_ga(lead_disp)} 말하는 '{lead_kw}'{_josa_wa(lead_kw)} {second_disp}{_josa_ga(second_disp)} 말하는 '{second_kw}'{_josa_ga(second_kw)} 부딪히는 지점, 그게 지금 이 흐름의 핵심 긴장이에요."
+    else:
+        thesis = f"{q_prefix}{lead_disp}{_josa_ga(lead_disp)} 먼저 나온 걸 보면, 지금 이 흐름은 '{lead_kw}' 쪽에서 시작돼요."
+    parts = [thesis]
 
-    connectors = ["그래서", "그러다 보니", "그런 채로"]
-    prev_name = lead["card_name"]
-    for i, phase in enumerate(PHASE_ORDER):
+    # 전(轉)·결(結) 라벨은 이미 "그런데"·"결국"으로 시작해서 커넥터를 또 붙이면 겹친다(사주팔자봇 지적).
+    NEEDS_CONNECTOR = {"기", "승"}
+    connectors = ["그래서", "게다가", "그러다 보니"]
+    conn_idx = 0
+    cb_idx = 0
+    prev_card = lead
+    first_written = True
+    for phase in PHASE_ORDER:
         group = buckets[phase]
         if not group:
             continue
-        names = "·".join(f"'{c['card_name']}'" for c in group)
-        connector = connectors[(i - 1) % len(connectors)] if i > 0 else ""
-        callback = f" (아까 나온 {prev_name}의 기운이 여기까지 이어져요.)" if i > 0 else ""
-        lead_word = f" {connector}" if connector else ""
-        parts.append(f"{lead_word} {PHASE_LABEL[phase]}, {names}{_josa_ga(group[-1]['card_name'])} 나왔어요.{callback}")
-        prev_name = group[-1]["card_name"]
+        names = "·".join(display_name(c["card_name"]) for c in group)
+        last_disp = display_name(group[-1]["card_name"])
+        if first_written:
+            lead_word = ""
+            callback = ""
+        else:
+            callback = _CALLBACK_TEMPLATES[cb_idx % len(_CALLBACK_TEMPLATES)].format(sym=_symbol_word(prev_card))
+            cb_idx += 1
+            if phase in NEEDS_CONNECTOR:
+                lead_word = f" {connectors[conn_idx % len(connectors)]}"
+                conn_idx += 1
+            else:
+                lead_word = ""
+        parts.append(f"{lead_word} {PHASE_LABEL[phase]}, {names}{_josa_ga(last_disp)} 나왔어요.{callback}")
+        prev_card = group[-1]
+        first_written = False
 
     result_group = buckets["결"]
     if result_group:
         rc = result_group[-1]
-        ga = _josa_ga(rc["card_name"])
+        rc_disp = display_name(rc["card_name"])
+        ga = _josa_ga(rc_disp)
+        rc_sentence = CARD_MEANINGS.get(rc["card_name"], ("", ""))[1 if rc.get("reversed") else 0]
         if rc.get("reversed"):
-            parts.append(f" 결국 '{rc['card_name']}'{ga} 역방향으로 나온 만큼, 두 가지로 나눠서 볼게요 — 지금처럼 그대로 두면 흐름이 늦어지고, 반대로 지금 원인을 짚어 움직이면 방향이 풀려요.")
+            parts.append(f" 결국 {rc_disp}{ga} 역방향으로 나온 만큼, {rc_sentence} 그래서 두 가지로 나눠서 볼게요 — 지금처럼 그대로 두면 흐름이 늦어지고, 반대로 지금 원인을 짚어 움직이면 방향이 풀려요.")
         else:
-            parts.append(f" 결국 '{rc['card_name']}'{ga} 나온 만큼, 이 질문의 답은 그쪽으로 흘러가고 있어요.")
+            parts.append(f" 결국 {rc_disp}{ga} 나온 만큼, {rc_sentence}")
     elif buckets["전"]:
         # 렘니스케이트처럼 '결과' 포지션이 아예 없는 스프레드 — 접점(轉)을 종합해 처방으로 마무리한다.
         cross = buckets["전"]
@@ -713,8 +773,7 @@ def get_overall_summary(cards: list, ilgan: str = None, question: str = "") -> s
 
     callback_msg = ""
     if total >= 3:
-        first_card = cards[0].get("card_name", "")
-        callback_msg = f" 맨 처음 나온 '{first_card}'의 기운이 지금까지도 바탕에 깔려 있어요."
+        callback_msg = f" 맨 처음 나온 '{_symbol_word(cards[0])}' 기운이 지금까지도 바탕에 깔려 있어요."
 
     branch_msg = ""
     if overall_tone == "혼재된":
