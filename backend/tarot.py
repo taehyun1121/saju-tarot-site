@@ -448,6 +448,16 @@ POSITION_PREFIXES: dict[str, str] = {
     "떠오르는 문제": "앞으로 떠오를 문제는",
 }
 
+# 🔴 2026-08-13 — 타로_리딩기법.md Part 5-3(사주팔자 위임) — 연애 포지션("그 사람은 어떤 사람" 계열)
+# 한정 카드→외모/분위기 구체 묘사 보조 매핑. 성격 카드와 반전시켜 입체감을 주는 용도라 강제 아님(있으면 좋음).
+APPEARANCE_HINTS: dict[str, str] = {
+    "8/펜타클": "손이 예쁜 사람일 수 있어요",
+    "5/펜타클": "마른 체형에 슬림한 인상이에요",
+    "나이트/완드": "활발하고 에너지 넘치는 인상이에요",
+    "페이지/소드": "경계심이 있는 첫인상인데, 친해지면 반전이 있어요",
+}
+LOVE_APPEARANCE_POSITIONS = {"그 사람의 생각", "그 사람의 본심"}
+
 # ── 사주 연동 해석 ─────────────────────────────────────────
 ILGAN_CARD_TRAITS = {
     "갑": {"energy": "木", "style": "직진형", "keyword": "추진·리더십"},
@@ -815,11 +825,17 @@ def get_meaning(card_name: str, reversed_: bool, position_name: str = "") -> str
     keyword = get_keyword(card_name, reversed_)
     compressed = f"핵심만 한마디로 하면 '{keyword}'{_josa_yeyo(keyword)}."
 
+    appearance = ""
+    if position_name in LOVE_APPEARANCE_POSITIONS:
+        hint = APPEARANCE_HINTS.get(card_name)
+        if hint:
+            appearance = f" 겉모습으로는 {hint} — 성격을 보면 또 다르게 느껴질 수 있어요."
+
     if position_name:
         prefix = POSITION_PREFIXES.get(position_name, "")
         if prefix:
-            return f"{prefix}, {compressed} {sentence}"
-    return f"{compressed} {sentence}"
+            return f"{prefix}, {compressed} {sentence}{appearance}"
+    return f"{compressed} {sentence}{appearance}"
 
 # ── 기존 키워드 (이미지 카드 하단 표시용) ─────────────────
 KEYWORDS = {
