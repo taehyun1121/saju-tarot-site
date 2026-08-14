@@ -677,6 +677,14 @@ def _phased_narrative(cards: list, question: str) -> str:
     return "".join(parts)
 
 
+def _card_name(c: dict) -> str:
+    # 🔴 2026-08-14 버그수정(사주팔자봇 제보) — main.py 경로는 "card_name" 키를 쓰지만
+    # ai_consultant.py tool_draw_tarot()의 result_cards는 "name" 키를 쓴다(PDF용
+    # to_reading_data()가 그 "name"에 의존해서 못 바꿈). get_overall_summary가 "card_name"만
+    # 읽어 항상 빈 문자열을 받고 수트 판별에 실패 → 전 카드가 "메이저"로 오집계되던 버그.
+    return c.get("card_name") or c.get("name") or ""
+
+
 def get_overall_summary(cards: list, ilgan: str = None, question: str = "") -> str:
     # 🔴 2026-08-12(Part 2.5) — 시간 라벨이 뒤섞인 스프레드는 起承轉結 챕터로 재배열해서 읽는다.
     # 카드 절반 이상이 이 재배열 대상 포지션이면(=celtic·relation12·lemniscate) 챕터식으로 가고,
@@ -698,7 +706,7 @@ def get_overall_summary(cards: list, ilgan: str = None, question: str = "") -> s
     # 수트 분포
     suit_count = {"완드":0,"컵":0,"소드":0,"펜타클":0,"메이저":0}
     for c in cards:
-        name = c.get("card_name","")
+        name = _card_name(c)
         found = False
         for s in ["완드","컵","소드","펜타클"]:
             if s in name:
@@ -714,7 +722,7 @@ def get_overall_summary(cards: list, ilgan: str = None, question: str = "") -> s
     # 긍정/부정 판단
     pos_cards = 0
     for c in cards:
-        name = c.get("card_name","")
+        name = _card_name(c)
         rev = c.get("reversed", False)
         energy = CARD_ENERGY.get(name, ("흐름",1))
         score = energy[1] if not rev else -energy[1]
@@ -763,7 +771,7 @@ def get_overall_summary(cards: list, ilgan: str = None, question: str = "") -> s
     if total >= 3:
         scores = []
         for c in cards:
-            name = c.get("card_name", "")
+            name = _card_name(c)
             rev = c.get("reversed", False)
             e = CARD_ENERGY.get(name, ("흐름", 1))
             scores.append(e[1] if not rev else -e[1])
@@ -777,7 +785,7 @@ def get_overall_summary(cards: list, ilgan: str = None, question: str = "") -> s
             combo_msgs.append(" 앞쪽 카드보다 뒤쪽 카드의 기운이 더 무거워지는 느낌이 있어요 — 지금보다 신중함이 더 필요해지는 흐름으로 읽혀요.")
 
     # ④ 전통적 카드 페어링 보너스 — 사주봇 검증 4종만, 78x78 전체 공식화 안 함.
-    drawn_names = {c.get("card_name", "") for c in cards}
+    drawn_names = {_card_name(c) for c in cards}
     for (a, b), note in KNOWN_PAIRS:
         if a in drawn_names and b in drawn_names:
             combo_msgs.append(f" {note}")
