@@ -22,6 +22,7 @@
  */
 import OrderModal from './OrderModal'
 import PromoBanner from './PromoBanner'
+import { KmongResultCTA } from './StripBanners'
 
 const Rd = ({ children }) => <span className="rd">{children}</span>
 
@@ -138,6 +139,10 @@ export default function UnifiedPaywall({
         🔴 가린 부분은 <b>실제 산출값의 핵심 토큰만</b> 가린 것(가짜 문장·빈 껍데기 아님).
         전문은 서버가 다 내려주고 화면에서만 가린다.
       </div>
+
+      {/* 🔴 2026-08-16 크몽 전환 퍼널(소셜봇 설계) — 값을 받은 직후 = 전환 골든타임.
+          자체 유료 PDF CTA(위) 다음, 화면 맨 아래 보조 전환 경로. */}
+      <KmongResultCTA />
 
       {amount && (
         <OrderModal open={orderOpen} onClose={() => setOrderOpen(false)}

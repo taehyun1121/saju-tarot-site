@@ -5,7 +5,7 @@ import TarotPage from './pages/TarotPage'
 import HistoryPage from './pages/HistoryPage'
 import PremiumPage from './pages/PremiumPage'
 import SajuFunnelPage from './pages/SajuFunnelPage'
-import { DomainStripBanner } from './components/StripBanners'
+import { DomainStripBanner, KmongStripBanners } from './components/StripBanners'
 import EventModal from './components/EventModal'
 
 // 🔴 2026-07-19 몰입 퍼널(블루골드 신당) 전환 — 디자인봇 확정본 구현.
@@ -13,9 +13,14 @@ import EventModal from './components/EventModal'
 // 🔴 2026-08-12 — 사주/타로 갈림길(showTarot 토글) 제거. 형 확정: 하나의 흐름으로 합쳐졌으니
 //   SajuFunnelPage 하나가 유일한 진입점이다(입력→스포→유형선택→카드뽑기→통합결론).
 //   TarotFunnelPage.jsx는 지우지 않고 남겨뒀다 — 참조는 여기서만 빠졌다.
+// 🔴 2026-08-16 — 크몽 전환 퍼널(소셜봇 설계, blog/kmong_funnel_design.md) 최우선 항목:
+//   KmongStripBanners가 정의만 있고 어디서도 import 안 돼 라이브에 크몽 링크가 0개였다.
+//   상시 스트립으로 살려서 사이트 어느 화면에서도 노출되게 한다(전환 골든타임 CTA는
+//   UnifiedPaywall.jsx의 KmongResultCTA가 별도 담당).
 function FunnelApp() {
   return (
     <>
+      <KmongStripBanners />
       <SajuFunnelPage />
       <EventModal />
     </>
