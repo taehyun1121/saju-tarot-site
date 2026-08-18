@@ -556,6 +556,50 @@ def get_saju_meaning(card_name: str, reversed_: bool, ilgan: str) -> str:
     return result
 
 
+# 🔴 2026-08-18 신설(형 지시 ㄱㄱ!) — "융합형" 리딩 타입.
+# 계기: 형이 봇들 쓰기 전 개인적으로 Google AI Studio(Gemini)로 만들어 쓰던 타로 프로토타입이
+# 사주 정보+타로를 문단을 나누지 않고 한 문장 안에서 섞어 서술하는 방식이었음. 그 앱 자체는
+# 실제 명리 계산 없이 자유텍스트를 AI가 그럴듯하게 엮은 것(코코가 코드 직접 확인)이었지만,
+# "문장을 안 쪼개고 섞어 쓰는 서술 방식"만 골라서 우리 쪽(실제 saju_rule_engine 계산 기반)에
+# 접목한다. 기존 get_meaning/get_saju_meaning은 두 필드로 따로 나가 화면에서도 분리 표시되는데,
+# 이 타입은 사주 기질 문구를 카드뜻 문장 사이에 끼워 넣어 하나의 문단으로 읽히게 한다.
+def get_fused_meaning(card_name: str, reversed_: bool, ilgan: str, position_name: str = "") -> str:
+    """사주(일간)와 타로 카드뜻을 별도 문단으로 쪼개지 않고 한 문단 안에서 섞어 서술하는
+    '융합형' 리딩. ilgan이 없으면 순수 카드뜻(get_meaning)으로 폴백한다."""
+    trait = ILGAN_CARD_TRAITS.get(ilgan) if ilgan else None
+    if not trait:
+        return get_meaning(card_name, reversed_, position_name)
+
+    keyword = get_keyword(card_name, reversed_)
+    base = CARD_MEANINGS.get(card_name)
+    sentence = base[1 if reversed_ else 0] if base else "변화의 흐름이 이 자리에 작용하고 있어요."
+
+    ohaeng, kw = trait["energy"], trait["keyword"]
+    suit = next((s for s in ["완드", "컵", "소드", "펜타클"] if s in card_name), None)
+    if suit:
+        comment = ILGAN_SUIT_COMMENT.get((ohaeng, suit), "")
+        energy_desc, _ = SUIT_ENERGY.get(suit, ("변화", 1))
+    else:
+        comment = ""
+        energy_desc = CARD_ENERGY.get(card_name, ("흐름", 1))[0]
+
+    prefix = POSITION_PREFIXES.get(position_name, "") if position_name else ""
+    lead = f"{prefix}, " if prefix else ""
+    verb = "막혀 있는 모습으로 나타나요" if reversed_ else "공명해요"
+
+    fused = (f"{lead}{kw} 기질의 {ilgan} 일간에게 '{keyword}' 카드가 "
+             f"{energy_desc} 에너지로 {verb}. {sentence}")
+
+    if position_name in LOVE_APPEARANCE_POSITIONS:
+        hint = APPEARANCE_HINTS.get(card_name)
+        if hint:
+            fused += f" 겉모습으로는 {hint} — 성격을 보면 또 다르게 느껴질 수 있어요."
+
+    if comment:
+        fused += f" {comment}"
+    return fused
+
+
 # 🔴 2026-08-12 신설(사주팔자봇 위임, 타로_리딩기법.md Part 2.5) — 시간 라벨이 뒤섞인 스프레드
 # (켈틱크로스·2인관계타로12·렘니스케이트8)는 포지션이 뽑힌 순서(1..N)가 아니라 실제 시간/서사
 # 흐름(起承轉結)으로 재배열해서 읽어야 한다. 순서대로 짜인 스프레드(3~5장 단순형·magic7·

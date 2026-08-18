@@ -13,7 +13,7 @@ import json
 import re
 
 from saju import calc_pillars, calc_daeun, build_reading, build_compatibility_reading, CHEONGAN, JIJI, ILGAN_TRAITS
-from tarot import SPREADS, draw_cards, finalize_cards, get_meaning, get_saju_meaning, get_overall_summary
+from tarot import SPREADS, draw_cards, finalize_cards, get_meaning, get_saju_meaning, get_fused_meaning, get_overall_summary
 from saju_rule_engine import Pillars as _EnginePillars, ohaeng_count
 from saju_fortune_curve import score_curve
 from saju_narrative import rule_based_ai_reading, rule_based_decade_reading, ohaeng_legend, radar_svg, lifegraph_svg
@@ -177,6 +177,9 @@ class TarotRequest(BaseModel):
     spread_id: str
     question: Optional[str] = ""
     saju_context: Optional[dict] = None  # 사주 데이터 연동 시
+    # 🔴 2026-08-18(형 지시 ㄱㄱ!) — "separate"(기본, 기존 동작: meaning/saju_meaning 분리 필드)
+    # vs "fusion"(사주+타로를 한 문단으로 섞어 서술, get_fused_meaning). 기본값 유지로 하위호환.
+    reading_type: Optional[str] = "separate"
 
 @app.post("/api/tarot/draw")
 def draw_tarot(req: TarotRequest, request: Request):
@@ -194,7 +197,7 @@ def draw_tarot(req: TarotRequest, request: Request):
         card = cards[i]
         layout = spread["layout"][i]
         ilgan = req.saju_context.get("ilgan") if req.saju_context else None
-        result_cards.append({
+        card_entry = {
             "position_num": pos["num"],
             "position_name": pos["name"],
             "position_desc": pos["desc"],
@@ -202,12 +205,18 @@ def draw_tarot(req: TarotRequest, request: Request):
             "reversed": card["reversed"],
             "image": card["image"],
             "keyword": card["keyword"],
-            "meaning": get_meaning(card["name"], card["reversed"], pos["name"]),
-            "saju_meaning": get_saju_meaning(card["name"], card["reversed"], ilgan) if ilgan else "",
             "col": layout["col"],
             "row": layout["row"],
             "cross": layout.get("cross", False),
-        })
+        }
+        if req.reading_type == "fusion" and ilgan:
+            # 융합형 — 사주+타로를 한 문단으로 섞어 서술(meaning 필드 하나로 통합, saju_meaning 없음)
+            card_entry["meaning"] = get_fused_meaning(card["name"], card["reversed"], ilgan, pos["name"])
+            card_entry["saju_meaning"] = ""
+        else:
+            card_entry["meaning"] = get_meaning(card["name"], card["reversed"], pos["name"])
+            card_entry["saju_meaning"] = get_saju_meaning(card["name"], card["reversed"], ilgan) if ilgan else ""
+        result_cards.append(card_entry)
 
     ilgan = req.saju_context.get("ilgan") if req.saju_context else None
     # 🔴 2026-08-12 — Gemini 직접호출 제거. tarot.py는 이미 완전 룰베이스(카드조합·패턴카운트·
