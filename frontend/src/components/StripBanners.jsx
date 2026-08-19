@@ -1,8 +1,11 @@
+import { API } from '../api'
+
 // 🔴 2026-08-16 — 크몽 전환 퍼널 반영(소셜봇 설계, blog/kmong_funnel_design.md).
 // 저가(734044) 먼저 → 고가(778578) BEST. 무속 프레이밍 배제, "계산·정통성" 이중신뢰층 문구.
 const KMONG_GIGS = [
   {
     url: 'https://kmong.com/gig/734044',
+    gigId: '734044',
     icon: '🌿',
     tier: '가볍게 궁금한 것부터',
     text: '크몽 가벼운 상담',
@@ -10,12 +13,31 @@ const KMONG_GIGS = [
   },
   {
     url: 'https://kmong.com/gig/778578',
+    gigId: '778578',
     icon: '🔮',
     tier: '진지하게 풀어야 할 고민',
     text: '크몽 심층 상담',
     best: true,
   },
 ]
+
+// 🔴 2026-08-19 — 크몽 전환 클릭 트래킹(소셜봇 요청, 형 ㄱㄱ). catalog R 0단계 진단
+// ("훅 문제 vs 랜딩 문제")이 데이터 없이 감(感)으로 머물던 문제를 해소한다.
+// ① 우리 백엔드에 클릭 1건 기록(100% 우리 소유 데이터, target=_blank라 새 탭이라 네비게이션과 무관)
+// ② 크몽 URL엔 UTM 붙여 나감(크몽 쪽 유입경로 통계에 잡힐지는 불확실 — 그래도 비용 없는 시도).
+function trackAndBuildUrl(gig, position) {
+  fetch(`${API}/track/kmong-click`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ position, gig_id: gig.gigId, referrer: document.referrer || '' }),
+    keepalive: true,
+  }).catch(() => {})  // 트래킹 실패해도 사용자 이동은 막지 않는다
+  const u = new URL(gig.url)
+  u.searchParams.set('utm_source', 'gosamtarot_site')
+  u.searchParams.set('utm_medium', position)
+  u.searchParams.set('utm_campaign', 'kmong_funnel')
+  return u.toString()
+}
 
 export function DomainStripBanner() {
   return (
@@ -39,6 +61,10 @@ export function KmongStripBanners() {
       href={KMONG_GIGS[0].url}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={(e) => {
+        e.preventDefault()
+        window.open(trackAndBuildUrl(KMONG_GIGS[0], 'strip_banner'), '_blank', 'noopener,noreferrer')
+      }}
       className="flex items-center justify-center gap-2 w-full
                  bg-gradient-to-r from-p-900 via-rose-accent/40 to-p-900
                  border-b border-p-700 py-2 px-3
@@ -71,6 +97,10 @@ export function KmongResultCTA() {
             href={gig.url}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => {
+              e.preventDefault()
+              window.open(trackAndBuildUrl(gig, 'result_cta'), '_blank', 'noopener,noreferrer')
+            }}
             className={`relative flex-1 flex flex-col items-center gap-1 rounded-lg
                        border py-3 px-3 text-center transition-all
                        ${gig.best

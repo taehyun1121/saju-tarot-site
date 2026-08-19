@@ -45,6 +45,9 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 from orders import router as orders_router
 app.include_router(orders_router)
 
+from tracking import router as tracking_router
+app.include_router(tracking_router)
+
 # ── 사주 ───────────────────────────────────────────────────
 class SajuRequest(BaseModel):
     year: int
